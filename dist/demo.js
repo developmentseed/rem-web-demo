@@ -7,7 +7,8 @@ var ready = require('./ready')
 var mapboxCss = require('./insert-mapbox-css')
 var renderProperties = require('./render-properties')
 
-mapboxgl.accessToken = process.env.MapboxAccessToken
+// default is the 'rem-web-demo' API token in the devseed account
+mapboxgl.accessToken = process.env.MapboxAccessToken || 'pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJjaW14d2w2MW8wM2tndXJra2locWczMGR2In0._7KBuOaYm9R1rK3K6hdJlQ'
 
 var appCss = Buffer("LmRhdGEtcG9wdXAgdGFibGUgewogIGxpbmUtaGVpZ2h0OiAxOwogIG1hcmdpbi1ib3R0b206IDEwcHg7Cn0K","base64")
 
