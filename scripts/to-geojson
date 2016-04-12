@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+// traverse input dir (and subdirs), converting all shapefiles found to geojson
+// files; geojson files go straight into given output dir (flattening previous
+// dir structure)
+// assumes ogr2ogr is on the path
+
+var fs = require('fs-extra')
+var path = require('path')
+var execFile = require('child_process').execFile
+var queue = require('queue-async')
+
+var input = process.argv[2]
+var output = process.argv[3]
+
+var q = queue() // simple async queue
+
+fs.walk(input) // recursive file tree traversal
+.on('data', function (item) {
+  if (item.path.endsWith('.shp')) {
+    var targetPath = path.join(output, path.basename(item.path, '.shp') + '.geojson')
+    q.defer(function (done) {
+      execFile('ogr2ogr', [
+        targetPath,
+        item.path,
+        '-f', 'GeoJSON'
+      ], done)
+    })
+  }
+})
+.on('end', function () {
+  q.awaitAll(function (err, results) {
+    if (err) { throw err }
+    console.log('Finished converting ' + results.length + ' shapefiles to GeoJSON.')
+  })
+})

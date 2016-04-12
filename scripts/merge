@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+
+// merge multiple geojson files, attaching zero or more new properties based
+// on the input filename (to preserve distinctions among data from different
+// files)
+
+var fs = require('fs-extra')
+var argv = require('minimist')(process.argv.slice(2))
+var geojsonStream = require('geojson-stream')
+
+var props = {}
+if (argv.p) {
+  if (!Array.isArray(argv.p)) { argv.p = [argv.p] }
+  argv.p.forEach(function (prop) {
+    prop = prop.split('=')
+    props[prop[0]] = new RegExp(prop[1])
+  })
+}
+
+console.log(props)
+
+var files = argv._
+var output = geojsonStream.stringify()
+output.pipe(argv.o ? fs.createWriteStream(argv.o) : process.stdout)
+nextFile()
+
+function nextFile () {
+  var file = files.shift()
+  if (!file) {
+    output.end()
+    return
+  }
+
+  // parse new filename-based properties
+  var fileProperties = {}
+  Object.keys(props).forEach(function (key) {
+    var match = props[key].exec(file)
+    if (match) { fileProperties[key] = match[0] }
+  })
+
+  fs.createReadStream(file)
+  .pipe(geojsonStream.parse())
+  .on('data', function (feat) {
+    Object.assign(feat.properties, fileProperties)
+    output.write(feat)
+  })
+  .on('end', nextFile)
+}
