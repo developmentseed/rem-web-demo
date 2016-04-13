@@ -1,12 +1,17 @@
+var yo = require('yo-yo')
 
-module.exports = function renderProperties (properties) {
-  var rows = Object.keys(properties)
-  .map(function (key) {
-    return '<td>KEY</td><td>VALUE</td>'
-      .replace('KEY', key)
-      .replace('VALUE', properties[key])
-  })
-  .map(function (s) { return '<tr>' + s + '</tr>' })
-  .join('\n')
-  return '<table>\n' + rows + '</table>'
+module.exports = function renderProperties (features) {
+  return yo`<div class="feature-properties">
+    ${features.map((f) => yo`
+      <table>
+        ${Object.keys(properties).map((key) => yo`
+          <tr>
+            <td>${key}</td>
+            <td>${properties[key]}</td>
+          </tr>
+        `)}
+      </table>
+    `)}
+  </div>
+  `
 }

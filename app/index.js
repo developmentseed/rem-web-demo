@@ -56,10 +56,6 @@ function onLoad (map) {
       return
     }
 
-    var html = '<div class="data-popup">' +
-      features.map(function (f) { return renderProperties(f.properties) }).join('\n') +
-    '</div>'
-    popup.setLngLat(e.lngLat).setHTML(html).addTo(map)
+    popup.setLngLat(e.lngLat).setHTML(renderProperties(features)).addTo(map)
   })
-
-  }
+}
