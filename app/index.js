@@ -1,18 +1,18 @@
 var fs = require('fs')
 var path = require('path')
 var mapboxgl = require('mapbox-gl')
+var Layers = require('mapbox-gl-layers')
 var ready = require('./ready')
-var mapboxCss = require('./insert-mapbox-css')
+var insertCss = require('./insert-css')
 var renderProperties = require('./render-properties')
 
 // default is the 'rem-web-demo' API token in the devseed account
 mapboxgl.accessToken = process.env.MapboxAccessToken || 'pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJjaW14d2w2MW8wM2tndXJra2locWczMGR2In0._7KBuOaYm9R1rK3K6hdJlQ'
 
-var appCss = fs.readFileSync(path.join(__dirname, 'app.css'))
 
 // setup the document
 ready(function () {
-  mapboxCss(appCss)
+  insertCss()
 
   // stick a container div into the document if there isn't one already
   if (!document.querySelector('#rem-map')) {
@@ -27,16 +27,22 @@ ready(function () {
   // boot up the map
   var map = new mapboxgl.Map({
     container: 'rem-map',
-    style: 'mapbox://styles/devseed/cimxnftps00n7ahnpde7k6m3h'
+    style: 'mapbox://styles/devseed/cin0qcvll0016b7kqh7mc5y2c'
   })
+  window.map = map
   map.on('style.load', function () { onLoad(map) })
 })
 
 function onLoad (map) {
-  map.addControl(new mapboxgl.Navigation())
+  map.addControl(new mapboxgl.Navigation({ position: 'bottom-right' }))
+  var satLayers = map.getStyle().layers
+    .map((layer) => layer.id)
+    .filter((id) => id.startsWith('satellite'))
+  map.addControl(new Layers({
+    layers: { 'Satellite Layer': satLayers }
+  }))
 
-  var popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-
+  var popup
   map.on('mousemove', function (e) {
     var features = map.queryRenderedFeatures(e.point, {
       radius: 7,
@@ -52,10 +58,16 @@ function onLoad (map) {
     // Change the cursor style as a UI indicator.
     map.getCanvas().style.cursor = (features.length) ? 'pointer' : ''
     if (!features.length) {
-      popup.remove()
+      if (popup) { popup.remove() }
+      popup = null
       return
     }
 
-    popup.setLngLat(e.lngLat).setHTML(renderProperties(features)).addTo(map)
+    if (!popup) {
+      popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+      popup.addTo(map)
+    }
+
+    popup.setLngLat(e.lngLat).setDOMContent(renderProperties(features))
   })
 }
