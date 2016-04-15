@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+
+var fs = require('fs')
+var path = require('path')
+var request = require('request')
+var original = require('../data/style.json')
+
+var url = 'https://api.mapbox.com/styles/v1/' + original.owner + '/' +
+  original.id + '?access_token=' + process.env.MapboxAccessToken
+
+console.log('downloading ' + url)
+request(url, function (err, response, body) {
+  if (err) { throw err }
+  var data = JSON.parse(body)
+  original.layers = data.layers
+  original.metadata = data.metadata
+  original.center = data.center
+  original.zoom = data.zoom
+  original.pitch = data.pitch
+  fs.writeFileSync(path.join(__dirname, '..', 'data', 'style.json'),
+                             JSON.stringify(original, null, 2))
+})

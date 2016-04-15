@@ -18,7 +18,8 @@ var q = queue() // simple async queue
 fs.walk(input) // recursive file tree traversal
 .on('data', function (item) {
   if (item.path.endsWith('.shp')) {
-    var targetPath = path.join(output, path.basename(item.path, '.shp') + '.geojson')
+    var targetPath = item.path.replace(path.resolve(input) + '/', '').replace(/\//g, '-')
+    targetPath = path.join(output, path.basename(targetPath, '.shp') + '.geojson')
     q.defer(function (done) {
       execFile('ogr2ogr', [
         targetPath,
