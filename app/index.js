@@ -33,27 +33,35 @@ ready(function () {
   map.on('style.load', function () { onLoad(map) })
 })
 
+var modelLayers = [
+  'lv-transformer',
+  'mv-transformer',
+  'lv-generator',
+  'mv-generator',
+  'lv-network',
+  'mv-network'
+]
+modelLayers = modelLayers.map((x) => 'ug-' + x)
+  .concat(modelLayers.map((x) => 'ext-' + x))
+
 function onLoad (map) {
   map.addControl(new mapboxgl.Navigation({ position: 'bottom-right' }))
   var satLayers = map.getStyle().layers
     .map((layer) => layer.id)
     .filter((id) => id.startsWith('satellite'))
   map.addControl(new Layers({
-    layers: { 'Satellite Layer': satLayers }
+    layers: {
+      'Satellite Layer': satLayers,
+      'Customer Locations': [ 'customers-non-electrified', 'customers-electrified' ],
+      'REM Output': modelLayers.concat(['rem-customers'])
+    }
   }))
 
   var popup
   map.on('mousemove', function (e) {
     var features = map.queryRenderedFeatures(e.point, {
       radius: 7,
-      layers: [
-        'lv-transformer',
-        'mv-transformer',
-        'lv-generator',
-        'mv-generator',
-        'lv-network',
-        'mv-network'
-      ]
+      layers: modelLayers
     })
     // Change the cursor style as a UI indicator.
     map.getCanvas().style.cursor = (features.length) ? 'pointer' : ''
