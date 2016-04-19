@@ -5,10 +5,12 @@ var Layers = require('mapbox-gl-layers')
 var ready = require('./ready')
 var insertCss = require('./insert-css')
 var renderProperties = require('./render-properties')
+var buildStyle = require('./build-style')
+var createMenu = require('./menu')
+var config = require('./config')
 
 // default is the 'rem-web-demo' API token in the devseed account
-mapboxgl.accessToken = process.env.MapboxAccessToken || 'pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJjaW14d2w2MW8wM2tndXJra2locWczMGR2In0._7KBuOaYm9R1rK3K6hdJlQ'
-
+mapboxgl.accessToken = config.mapboxAccessToken
 
 // setup the document
 ready(function () {
@@ -27,22 +29,21 @@ ready(function () {
   // boot up the map
   var map = new mapboxgl.Map({
     container: 'rem-map',
-    style: 'mapbox://styles/devseed/cin0qcvll0016b7kqh7mc5y2c'
+    style: buildStyle(config.models)
   })
   window.map = map
   map.on('style.load', function () { onLoad(map) })
-})
 
-var modelLayers = [
-  'lv-transformer',
-  'mv-transformer',
-  'lv-generator',
-  'mv-generator',
-  'lv-network',
-  'mv-network'
-]
-modelLayers = modelLayers.map((x) => 'ug-' + x)
-  .concat(modelLayers.map((x) => 'ext-' + x))
+  document.body.appendChild(createMenu(config.models, function (model) {
+    var index = config.models.indexOf(model)
+    map.getStyle().layers.forEach((layer) => {
+      if (/model-.*$/.test(layer.id)) {
+        var visible = layer.id.endsWith('-' + index)
+        map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
+      }
+    })
+  }, config.models[0]))
+})
 
 function onLoad (map) {
   map.addControl(new mapboxgl.Navigation({ position: 'bottom-right' }))
@@ -52,8 +53,7 @@ function onLoad (map) {
   map.addControl(new Layers({
     layers: {
       'Satellite Layer': satLayers,
-      'Customer Locations': [ 'customers-non-electrified', 'customers-electrified' ],
-      'REM Output': modelLayers.concat(['rem-customers'])
+      'Customer Locations': [ 'customers-non-electrified', 'customers-electrified' ]
     }
   }))
 
@@ -61,7 +61,7 @@ function onLoad (map) {
   map.on('mousemove', function (e) {
     var features = map.queryRenderedFeatures(e.point, {
       radius: 7,
-      layers: modelLayers
+      layers: map.getStyle().layers.map((x) => x.id).filter((x) => /model-\d+$/.test(x))
     })
     // Change the cursor style as a UI indicator.
     map.getCanvas().style.cursor = (features.length) ? 'pointer' : ''

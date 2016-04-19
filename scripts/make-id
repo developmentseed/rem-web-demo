@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+
+// quick hack to make short ids from long filenames
+var path = require('path')
+var hat = require('hat')
+var base = path.basename(process.argv[2] || '')
+  .split(/[^a-zA-Z0-9]/)
+  .filter(Boolean)
+  .map((x) => isNaN(x) ? x.substring(0, 1) : '-' + parseInt(x, 10))
+  .concat(['-' + hat().slice(0, 4)])
+  .join('')
+
+console.log(base)

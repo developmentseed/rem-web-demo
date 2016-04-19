@@ -2,3 +2,23 @@
   line-height: 1;
   margin-bottom: 10px;
 }
+
+.menu {
+  position: absolute;
+  list-style-type: none;
+  background-color: white;
+  border-radius: 4px;
+  margin: 0;
+  padding: 4px;
+}
+
+.menu li {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.menu li.active {
+  background: #eaeaea;
+  font-weight: bold;
+  text-decoration: underline;
+}

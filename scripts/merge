@@ -5,6 +5,7 @@
 // files)
 
 var fs = require('fs-extra')
+var glob = require('glob')
 var argv = require('minimist')(process.argv.slice(2))
 var geojsonStream = require('geojson-stream')
 
@@ -19,10 +20,15 @@ if (argv.p) {
 
 console.log(props)
 
-var files = argv._
 var output = geojsonStream.stringify()
 output.pipe(argv.o ? fs.createWriteStream(argv.o) : process.stdout)
-nextFile()
+var files
+glob(argv._[0], {}, function (err, matched) {
+  if (err) { throw err }
+  files = matched
+  console.log('Merging ' + files.length + ' files')
+  nextFile()
+})
 
 function nextFile () {
   var file = files.shift()
@@ -35,7 +41,11 @@ function nextFile () {
   var fileProperties = {}
   Object.keys(props).forEach(function (key) {
     var match = props[key].exec(file)
-    if (match) { fileProperties[key] = match[0] }
+    if (match && match.length === 1) {
+      fileProperties[key] = match[0]
+    } else if (match && match.length > 1) {
+      fileProperties[key] = match.slice(1).join('-')
+    }
   })
 
   fs.createReadStream(file)

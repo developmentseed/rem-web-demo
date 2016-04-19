@@ -16,19 +16,19 @@ To get set up, first:
 Drop the raw output data in the `data/raw` directory (which you'll need to
 create), and then run:
 
-`make data/rem-output.mbtiles`
-`make data/rem-customer-model.mbtiles`
+ - `make data/rem-customer-model.mbtiles` to make the customer locations data source.
+ - `make data/rem-output/MODEL_RUN.mbtiles`, where `MODEL_RUN` should match up with the name of a top-level subdirectory of `data/raw` (e.g. if there's data for a run in `data/raw/Vaishali_Run_1`, then you'd do `make data/rem-output/Vaishali_Run_1.mbtiles`)
 
 This does a few things:
 1. Converts the shapefiles to geojson (in `data/geojson`)
-2. Merges each "type" of data into a single geojson: `Customers`, `Generator`, `Network`, `Transformer`.  The features from each individual file are given two new properties: `voltage` and `id`, which are inferred from the original file names.  (This step can easily be replaced if a different scheme is used later.)
+2. Merges each "type" of data into a single geojson: `Customers`, `Generator`, `Network`, `Transformer`.  The features from each individual file are given two new properties: `voltage` and `network_type`, which are inferred from the original file names.  (This step can easily be replaced if a different scheme is used later.)
 3. Use `tippecanoe` to slice this data up into Mapbox Vector Tiles.
 
 Now you can do:
 ```sh
 # You'll need a Mapbox API token with uploads:write scope granted
 export MapboxAccessToken=YOUR_TOKEN
-MB_ACCOUNT=your_account make upload
+make upload MB_ACCOUNT=your_mapbox_account
 ```
 
 ## Building & deploying the frontend

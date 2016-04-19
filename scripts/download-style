@@ -3,7 +3,7 @@
 var fs = require('fs')
 var path = require('path')
 var request = require('request')
-var original = require('../app/style.json')
+var original = require('../app/style.template.json')
 
 var url = 'https://api.mapbox.com/styles/v1/' + process.env.MB_ACCOUNT + '/' +
   original.id + '?access_token=' + process.env.MapboxAccessToken
@@ -12,11 +12,12 @@ console.log('downloading ' + url)
 request(url, function (err, response, body) {
   if (err) { throw err }
   var data = JSON.parse(body)
+  console.log(data)
   original.layers = data.layers
   original.metadata = data.metadata
   original.center = data.center
   original.zoom = data.zoom
   original.pitch = data.pitch
-  fs.writeFileSync(path.join(__dirname, '..', 'app', 'style.json'),
+  fs.writeFileSync(path.join(__dirname, '..', 'app', 'style.template.json'),
                              JSON.stringify(original, null, 2))
 })

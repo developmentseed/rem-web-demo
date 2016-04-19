@@ -1,35 +1,7 @@
 {
   "version": 8,
   "name": "REM demo",
-  "metadata": {
-    "mapbox:autocomposite": false,
-    "mapbox:groups": {
-      "1460481626436.542": {
-        "name": "REM Output",
-        "collapsed": false
-      },
-      "1460664293656.1677": {
-        "name": "Satellite",
-        "collapsed": true
-      },
-      "1460664177930.406": {
-        "name": "Mapbox Light Base",
-        "collapsed": true
-      },
-      "1460744437037.7139": {
-        "name": "Customers",
-        "collapsed": false
-      }
-    },
-    "mapbox:trackposition": false
-  },
-  "center": [
-    85.27320676502688,
-    25.840970641127626
-  ],
-  "zoom": 11.654325834381705,
   "bearing": 0,
-  "pitch": 0,
   "sources": {
     "satellite": {
       "url": "mapbox://mapbox.satellite",
@@ -37,12 +9,15 @@
       "tileSize": 256
     },
     "composite": {
-      "url": "mapbox://mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7,MB_ACCOUNT.TILESET_PREFIX-output,MB_ACCOUNT.TILESET_PREFIX-customers",
+      "url": "mapbox://mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7,MB_ACCOUNT.TILESET_PREFIX-customers",
       "type": "vector"
     }
   },
   "sprite": "mapbox://sprites/MB_ACCOUNT/STYLE_ID",
   "glyphs": "mapbox://fonts/MB_ACCOUNT/{fontstack}/{range}.pbf",
+  "id": "cin0qcvll0016b7kqh7mc5y2c",
+  "owner": "MB_ACCOUNT",
+  "draft": false,
   "layers": [
     {
       "id": "background",
@@ -5695,7 +5670,7 @@
         ]
       ],
       "type": "line",
-      "source": "composite",
+      "source": "model",
       "id": "ug-mv-network",
       "paint": {
         "line-color": "hsl(84, 90%, 33%)",
@@ -5738,7 +5713,7 @@
         ]
       ],
       "type": "line",
-      "source": "composite",
+      "source": "model",
       "id": "ug-lv-network",
       "paint": {
         "line-color": "hsl(84, 90%, 33%)",
@@ -5759,12 +5734,12 @@
       "source-layer": "Network"
     },
     {
-      "id": "ug-customers",
+      "id": "rem-customers",
       "type": "circle",
       "metadata": {
         "mapbox:group": "1460481626436.542"
       },
-      "source": "composite",
+      "source": "model",
       "source-layer": "Customers",
       "interactive": true,
       "layout": {
@@ -5830,7 +5805,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ug-lv-generator",
       "paint": {
         "circle-color": "hsl(84, 90%, 33%)",
@@ -5872,7 +5847,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ug-mv-generator",
       "paint": {
         "circle-color": "hsl(84, 90%, 33%)",
@@ -5915,7 +5890,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ug-lv-transformer",
       "paint": {
         "circle-color": "hsl(84, 90%, 33%)",
@@ -5957,7 +5932,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ug-mv-transformer",
       "paint": {
         "circle-color": "hsl(84, 90%, 33%)",
@@ -6000,7 +5975,7 @@
         ]
       ],
       "type": "line",
-      "source": "composite",
+      "source": "model",
       "id": "ext-mv-network",
       "paint": {
         "line-color": "hsl(201, 90%, 33%)",
@@ -6043,7 +6018,7 @@
         ]
       ],
       "type": "line",
-      "source": "composite",
+      "source": "model",
       "id": "ext-lv-network",
       "paint": {
         "line-color": "hsl(201, 90%, 33%)",
@@ -6085,7 +6060,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ext-lv-generator",
       "paint": {
         "circle-color": "hsl(201, 90%, 33%)",
@@ -6127,7 +6102,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ext-mv-generator",
       "paint": {
         "circle-color": "hsl(201, 90%, 33%)",
@@ -6170,7 +6145,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ext-lv-transformer",
       "paint": {
         "circle-color": "hsl(201, 90%, 33%)",
@@ -6212,7 +6187,7 @@
         ]
       ],
       "type": "circle",
-      "source": "composite",
+      "source": "model",
       "id": "ext-mv-transformer",
       "paint": {
         "circle-color": "hsl(201, 90%, 33%)",
@@ -6234,7 +6209,32 @@
       "source-layer": "Transformers"
     }
   ],
-  "id": "cin0qcvll0016b7kqh7mc5y2c",
-  "owner": "MB_ACCOUNT",
-  "draft": false
+  "metadata": {
+    "mapbox:autocomposite": false,
+    "mapbox:groups": {
+      "1460481626436.542": {
+        "name": "REM Output",
+        "collapsed": false
+      },
+      "1460664293656.1677": {
+        "name": "Satellite",
+        "collapsed": true
+      },
+      "1460664177930.406": {
+        "name": "Mapbox Light Base",
+        "collapsed": true
+      },
+      "1460744437037.7139": {
+        "name": "Customers",
+        "collapsed": false
+      }
+    },
+    "mapbox:trackposition": false
+  },
+  "center": [
+    85.27320676502688,
+    25.840970641127626
+  ],
+  "zoom": 11.654325834381705,
+  "pitch": 0
 }
