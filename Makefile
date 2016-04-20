@@ -30,6 +30,11 @@ data/rem-output/%.mbtiles: data/merged/%
 	mkdir -p $(dir $@)
 	tippecanoe -o $@ -n rem -z14 -b14 data/merged/$*/*.json
 
+.PHONY: all-models
+MODEL_RAW := $(foreach model,$(wildcard data/raw/*),data/rem-output/$(notdir $(model)).mbtiles)
+all-models: $(MODEL_RAW)
+	@echo Building all models: $(MODEL_RAW)
+
 .PHONY: upload-customers upload-model-runs
 upload-customers: data/rem-customer-model.mbtiles
 	node_modules/.bin/mapbox-upload $(MB_ACCOUNT).$(TILESET_PREFIX)-customers data/rem-customer-model.mbtiles

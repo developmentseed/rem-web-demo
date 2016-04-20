@@ -18,6 +18,7 @@ create), and then run:
 
  - `make data/rem-customer-model.mbtiles` to make the customer locations data source.
  - `make data/rem-output/MODEL_RUN.mbtiles`, where `MODEL_RUN` should match up with the name of a top-level subdirectory of `data/raw` (e.g. if there's data for a run in `data/raw/Vaishali_Run_1`, then you'd do `make data/rem-output/Vaishali_Run_1.mbtiles`)
+ - (Alternatively, `make all-models` will attempt to build a model for each subdirectory of `data/raw` -- use it like `make all-models -j 8` to take advantage of parallelization).
 
 This does a few things:
 1. Converts the shapefiles to geojson (in `data/geojson`)
@@ -28,7 +29,7 @@ Now you can do:
 ```sh
 # You'll need a Mapbox API token with uploads:write scope granted
 export MapboxAccessToken=YOUR_TOKEN
-make upload MB_ACCOUNT=your_mapbox_account
+make upload-model-runs MB_ACCOUNT=your_mapbox_account
 ```
 
 ## Building & deploying the frontend
