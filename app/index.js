@@ -80,6 +80,8 @@ function onLoad (map) {
       popup = null
       return
     }
+
+    features = [features[0]]
     if (!popup) {
       popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
       popup.addTo(map)
