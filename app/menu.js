@@ -8,7 +8,7 @@ function createMenu (items, onChange, initialActive) {
   return list
 
   function render () {
-    return yo`<ul class='menu'>${items.map(renderItem)}</ul>`
+    return yo`<ul>${items.map(renderItem)}</ul>`
   }
 
   function renderItem (item, i) {

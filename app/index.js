@@ -1,6 +1,7 @@
 var fs = require('fs')
 var path = require('path')
 var mapboxgl = require('mapbox-gl')
+var yo = require('yo-yo')
 var Layers = require('mapbox-gl-layers')
 var ready = require('./ready')
 var insertCss = require('./insert-css')
@@ -29,12 +30,13 @@ ready(function () {
   // boot up the map
   var map = new mapboxgl.Map({
     container: 'rem-map',
-    style: buildStyle(config.models)
+    style: buildStyle()
   })
   window.map = map
   map.on('style.load', function () { onLoad(map) })
 
-  document.body.appendChild(createMenu(config.models, function (model) {
+  // add the model switcher
+  var menu = createMenu(config.models, function (model) {
     var index = config.models.indexOf(model)
     map.getStyle().layers.forEach((layer) => {
       if (/model-.*$/.test(layer.id)) {
@@ -42,7 +44,14 @@ ready(function () {
         map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
       }
     })
-  }, config.models[0]))
+  }, config.models[0])
+  document.body.appendChild(yo`
+    <div class='menu'>
+      <h2>${config.modelMenuTitle}</h1>
+      ${menu}
+    </div>
+  `)
+
 })
 
 function onLoad (map) {

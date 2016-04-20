@@ -9,7 +9,7 @@
       "tileSize": 256
     },
     "composite": {
-      "url": "mapbox://mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7,MB_ACCOUNT.TILESET_PREFIX-customers",
+      "url": "mapbox://mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7,CUSTOMERS_TILESET",
       "type": "vector"
     }
   },

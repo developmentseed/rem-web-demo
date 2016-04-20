@@ -34,4 +34,7 @@ make upload-model-runs MB_ACCOUNT=your_mapbox_account
 
 ## Building & deploying the frontend
 
-Just run `npm run bundle`, which updates the the bundled javascript file in `dist/`, and then commit the change to github.
+Configure the Mapbox account details and specific tilesets (data sources) by editing `app/config.js`
+
+Then, to build, just run `npm run bundle`, which updates the the bundled javascript file in `dist/`, and then commit the change to github.
+

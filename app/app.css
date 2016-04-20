@@ -5,16 +5,25 @@
 
 .menu {
   position: absolute;
-  list-style-type: none;
   background-color: white;
   border-radius: 4px;
-  margin: 0;
   padding: 4px;
+}
+
+.menu h2 {
+  font-size: 1rem;
+}
+.menu ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
 .menu li {
   display: inline-block;
   cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
 }
 
 .menu li.active {
