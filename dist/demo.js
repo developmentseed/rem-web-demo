@@ -5,12 +5,12 @@ var config = require('./config')
 
 module.exports = buildStyle
 
-function buildStyle (models) {
+function buildStyle () {
   return traverse(template).map(function (x) {
     var key = this.path.join('.')
     if (key === 'sources') {
       var sources = extend(x)
-      models.forEach((src, i) => {
+      config.models.forEach((src, i) => {
         sources['model-' + i] = {
             url: 'mapbox://' + src.tileset,
             type: 'vector'
@@ -21,7 +21,7 @@ function buildStyle (models) {
     } else if (key === 'layers') {
       var layers = x.map((layer) => {
         if (layer.source === 'model') {
-          return models.map((src, i) => extend(layer, {
+          return config.models.map((src, i) => extend(layer, {
             id: layer.id + '-model-' + i,
             source: 'model-' + i,
             layout: extend(layer.layout, {
@@ -35,7 +35,7 @@ function buildStyle (models) {
       this.update(flatten(layers))
     } else if (isString(x)) {
       this.update(x.replace(/MB_ACCOUNT/g, config.mapboxAccount)
-                    .replace(/TILESET_PREFIX/g, config.tilesetPrefix)
+                    .replace(/CUSTOMERS_TILESET/g, config.customersTileset)
                     .replace(/STYLE_ID/g, template.id))
     }
   })
@@ -58,7 +58,7 @@ function extend (o1, o2) {
 
 // output to console if this is being run directly as a script
 if (require.main === module) {
-  console.log(JSON.stringify(buildStyle(require('./config').models), null, 2))
+  console.log(JSON.stringify(buildStyle(), null, 2))
 }
 
 },{"./config":2,"./style.template.json":8,"traverse":177}],2:[function(require,module,exports){
@@ -66,11 +66,13 @@ module.exports = {
   mapboxAccessToken: "pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJnUi1mbkVvIn0.018aLhX0Mb0tdtaT2QNe2Q" ||
   'pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJjaW14d2w2MW8wM2tndXJra2locWczMGR2In0._7KBuOaYm9R1rK3K6hdJlQ',
   mapboxAccount: 'devseed',
-  tilesetPrefix: 'rem',
+  customersTileset: 'devseed.rem-customers',
+  "modelMenuTitle": "Diesel Price",
   models: [
-    { name: '60', tileset: 'devseed.rem-VSD-60-20160419m-5794'},
-    { name: '70', tileset: 'devseed.rem-VSD-70-20160419m-bad7' },
-    { name: '80', tileset: 'devseed.rem-VSD-80-20160419m-500d' }
+    { name: '$0.85', tileset: 'devseed.rem-VSD-85-20160420m-ea5a'},
+    { name: '$0.90', tileset: 'devseed.rem-VSD-90-20160420m-5f9a'},
+    { name: '$0.95', tileset: 'devseed.rem-VSD-95-20160420m-ba0d'},
+    { name: '$1.00', tileset: 'devseed.rem-VSD-100-20160420m-0a8d'}
   ],
 }
 
@@ -78,6 +80,7 @@ module.exports = {
 
 var path = require('path')
 var mapboxgl = require('mapbox-gl')
+var yo = require('yo-yo')
 var Layers = require('mapbox-gl-layers')
 var ready = require('./ready')
 var insertCss = require('./insert-css')
@@ -106,12 +109,13 @@ ready(function () {
   // boot up the map
   var map = new mapboxgl.Map({
     container: 'rem-map',
-    style: buildStyle(config.models)
+    style: buildStyle()
   })
   window.map = map
   map.on('style.load', function () { onLoad(map) })
 
-  document.body.appendChild(createMenu(config.models, function (model) {
+  // add the model switcher
+  var menu = createMenu(config.models, function (model) {
     var index = config.models.indexOf(model)
     map.getStyle().layers.forEach((layer) => {
       if (/model-.*$/.test(layer.id)) {
@@ -119,7 +123,43 @@ ready(function () {
         map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
       }
     })
-  }, config.models[0]))
+  }, config.models[0])
+  document.body.appendChild((function () {
+          function appendChild (el, childs) {
+            for (var i = 0; i < childs.length; i++) {
+              var node = childs[i];
+              if (Array.isArray(node)) {
+                appendChild(el, node)
+                continue
+              }
+              if (typeof node === "number" ||
+                typeof node === "boolean" ||
+                node instanceof Date ||
+                node instanceof RegExp) {
+                node = node.toString()
+              }
+
+              if (typeof node === "string") {
+                if (el.lastChild && el.lastChild.nodeName === "#text") {
+                  el.lastChild.nodeValue += node
+                  continue
+                }
+                node = document.createTextNode(node)
+              }
+
+              if (node && node.nodeType) {
+                el.appendChild(node)
+              }
+            }
+          }
+          var bel1 = document.createElement("div")
+bel1.setAttribute("class", "menu")
+var bel0 = document.createElement("h2")
+appendChild(bel0, [arguments[0]])
+appendChild(bel1, ["\n      ",bel0,"\n      ",arguments[1],"\n    "])
+          return bel1
+        }(config.modelMenuTitle,menu)))
+
 })
 
 function onLoad (map) {
@@ -157,13 +197,13 @@ function onLoad (map) {
   })
 }
 
-},{"./build-style":1,"./config":2,"./insert-css":4,"./menu":5,"./ready":6,"./render-properties":7,"mapbox-gl":78,"mapbox-gl-layers":39,"path":169}],4:[function(require,module,exports){
+},{"./build-style":1,"./config":2,"./insert-css":4,"./menu":5,"./ready":6,"./render-properties":7,"mapbox-gl":78,"mapbox-gl-layers":39,"path":169,"yo-yo":190}],4:[function(require,module,exports){
 
 var path = require('path')
 var css = [
   ".mapboxgl-map {\n    font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;\n    overflow: hidden;\n    position: relative;\n    -webkit-tap-highlight-color: rgba(0,0,0,0);\n}\n\n.mapboxgl-canvas-container.mapboxgl-interactive,\n.mapboxgl-ctrl-nav-compass {\n    cursor: -webkit-grab;\n    cursor: -moz-grab;\n    cursor: grab;\n}\n.mapboxgl-canvas-container.mapboxgl-interactive:active,\n.mapboxgl-ctrl-nav-compass:active {\n    cursor: -webkit-grabbing;\n    cursor: -moz-grabbing;\n    cursor: grabbing;\n}\n\n.mapboxgl-ctrl-top-left,\n.mapboxgl-ctrl-top-right,\n.mapboxgl-ctrl-bottom-left,\n.mapboxgl-ctrl-bottom-right  { position:absolute; }\n.mapboxgl-ctrl-top-left      { top:0; left:0; }\n.mapboxgl-ctrl-top-right     { top:0; right:0; }\n.mapboxgl-ctrl-bottom-left   { bottom:0; left:0; }\n.mapboxgl-ctrl-bottom-right  { right:0; bottom:0; }\n\n.mapboxgl-ctrl { clear:both; }\n.mapboxgl-ctrl-top-left .mapboxgl-ctrl { margin:10px 0 0 10px; float:left; }\n.mapboxgl-ctrl-top-right .mapboxgl-ctrl{ margin:10px 10px 0 0; float:right; }\n.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl { margin:0 0 10px 10px; float:left; }\n.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl { margin:0 10px 10px 0; float:right; }\n\n.mapboxgl-ctrl-group {\n    border-radius: 4px;\n    -moz-box-shadow: 0px 0px 2px rgba(0,0,0,0.1);\n    -webkit-box-shadow: 0px 0px 2px rgba(0,0,0,0.1);\n    box-shadow: 0px 0px 0px 2px rgba(0,0,0,0.1);\n    overflow: hidden;\n    background: #fff;\n}\n.mapboxgl-ctrl-group > button {\n    width: 30px;\n    height: 30px;\n    display: block;\n    padding: 0;\n    outline: none;\n    border: none;\n    border-bottom: 1px solid #ddd;\n    box-sizing: border-box;\n    background-color: rgba(0,0,0,0);\n    cursor: pointer;\n}\n/* https://bugzilla.mozilla.org/show_bug.cgi?id=140562 */\n.mapboxgl-ctrl > button::-moz-focus-inner {\n    border: 0;\n    padding: 0;\n}\n.mapboxgl-ctrl > button:last-child {\n    border-bottom: 0;\n}\n.mapboxgl-ctrl > button:hover {\n    background-color: rgba(0,0,0,0.05);\n}\n.mapboxgl-ctrl-icon,\n.mapboxgl-ctrl-icon > div.arrow {\n    speak: none;\n    -webkit-font-smoothing: antialiased;\n    -moz-osx-font-smoothing: grayscale;\n}\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-out {\n    padding: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%0A%20%20%3Cpath%20style%3D%27fill%3A%23333333%3B%27%20d%3D%27m%207%2C9%20c%20-0.554%2C0%20-1%2C0.446%20-1%2C1%200%2C0.554%200.446%2C1%201%2C1%20l%206%2C0%20c%200.554%2C0%201%2C-0.446%201%2C-1%200%2C-0.554%20-0.446%2C-1%20-1%2C-1%20z%27%20%2F%3E%0A%3C%2Fsvg%3E%0A\");\n}\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-in  {\n    padding: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%0A%20%20%3Cpath%20style%3D%27fill%3A%23333333%3B%27%20d%3D%27M%2010%206%20C%209.446%206%209%206.4459904%209%207%20L%209%209%20L%207%209%20C%206.446%209%206%209.446%206%2010%20C%206%2010.554%206.446%2011%207%2011%20L%209%2011%20L%209%2013%20C%209%2013.55401%209.446%2014%2010%2014%20C%2010.554%2014%2011%2013.55401%2011%2013%20L%2011%2011%20L%2013%2011%20C%2013.554%2011%2014%2010.554%2014%2010%20C%2014%209.446%2013.554%209%2013%209%20L%2011%209%20L%2011%207%20C%2011%206.4459904%2010.554%206%2010%206%20z%27%20%2F%3E%0A%3C%2Fsvg%3E%0A\");\n}\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-geolocate  {\n    padding: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20style%3D%27fill%3A%23333333%3B%27%20d%3D%27M13%2C7%20L10.5%2C11.75%20L10.25%2C10%20z%20M13.888%2C6.112%20C13.615%2C5.84%2013.382%2C6.076%2012.5%2C6.5%20C10.14%2C7.634%206%2C10%206%2C10%20L9.5%2C10.5%20L10%2C14%20C10%2C14%2012.366%2C9.86%2013.5%2C7.5%20C13.924%2C6.617%2014.16%2C6.385%2013.888%2C6.112%27%2F%3E%3C%2Fsvg%3E\");\n}\n\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-compass > div.arrow {\n    width: 20px;\n    height: 20px;\n    margin: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2020%2020%27%3E%0A%09%3Cpolygon%20fill%3D%27%23333333%27%20points%3D%276%2C9%2010%2C1%2014%2C9%27%2F%3E%0A%09%3Cpolygon%20fill%3D%27%23CCCCCC%27%20points%3D%276%2C11%2010%2C19%2014%2C11%20%27%2F%3E%0A%3C%2Fsvg%3E\");\n    background-repeat: no-repeat;\n}\n\n.mapboxgl-ctrl.mapboxgl-ctrl-attrib {\n    padding: 0 5px;\n    background-color: rgba(255,255,255,0.5);\n    margin: 0;\n}\n.mapboxgl-ctrl-attrib a {\n    color: rgba(0,0,0,0.75);\n    text-decoration: none;\n}\n.mapboxgl-ctrl-attrib a:hover {\n    color: inherit;\n    text-decoration: underline;\n}\n.mapboxgl-ctrl-attrib .mapbox-improve-map {\n    font-weight: bold;\n    margin-left: 2px;\n}\n\n.mapboxgl-popup {\n    position: absolute;\n    top: 0;\n    left: 0;\n    display: -webkit-flex;\n    display: flex;\n    will-change: transform;\n    pointer-events: none;\n}\n.mapboxgl-popup-anchor-top,\n.mapboxgl-popup-anchor-top-left,\n.mapboxgl-popup-anchor-top-right {\n    -webkit-flex-direction: column;\n    flex-direction: column;\n}\n.mapboxgl-popup-anchor-bottom,\n.mapboxgl-popup-anchor-bottom-left,\n.mapboxgl-popup-anchor-bottom-right {\n    -webkit-flex-direction: column-reverse;\n    flex-direction: column-reverse;\n}\n.mapboxgl-popup-anchor-left {\n    -webkit-flex-direction: row;\n    flex-direction: row;\n}\n.mapboxgl-popup-anchor-right {\n    -webkit-flex-direction: row-reverse;\n    flex-direction: row-reverse;\n}\n.mapboxgl-popup-tip {\n    width: 0;\n    height: 0;\n    border: 10px solid transparent;\n    z-index: 1;\n}\n.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-top: none;\n    border-bottom-color: #fff;\n}\n.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip {\n    -webkit-align-self: flex-start;\n    align-self: flex-start;\n    border-top: none;\n    border-left: none;\n    border-bottom-color: #fff;\n}\n.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {\n    -webkit-align-self: flex-end;\n    align-self: flex-end;\n    border-top: none;\n    border-right: none;\n    border-bottom-color: #fff;\n}\n.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-bottom: none;\n    border-top-color: #fff;\n}\n.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip {\n    -webkit-align-self: flex-start;\n    align-self: flex-start;\n    border-bottom: none;\n    border-left: none;\n    border-top-color: #fff;\n}\n.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {\n    -webkit-align-self: flex-end;\n    align-self: flex-end;\n    border-bottom: none;\n    border-right: none;\n    border-top-color: #fff;\n}\n.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-left: none;\n    border-right-color: #fff;\n}\n.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-right: none;\n    border-left-color: #fff;\n}\n.mapboxgl-popup-close-button {\n    position: absolute;\n    right: 0;\n    top: 0;\n    border: none;\n    border-radius: 0 3px 0 0;\n    cursor: pointer;\n    background-color: rgba(0,0,0,0);\n}\n.mapboxgl-popup-close-button:hover {\n    background-color: rgba(0,0,0,0.05);\n}\n.mapboxgl-popup-content {\n    position: relative;\n    background: #fff;\n    border-radius: 3px;\n    box-shadow: 0 1px 2px rgba(0,0,0,0.10);\n    padding: 10px 10px 15px;\n    pointer-events: auto;\n}\n.mapboxgl-popup-anchor-top-left .mapboxgl-popup-content {\n    border-top-left-radius: 0;\n}\n.mapboxgl-popup-anchor-top-right .mapboxgl-popup-content {\n    border-top-right-radius: 0;\n}\n.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-content {\n    border-bottom-left-radius: 0;\n}\n.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-content {\n    border-bottom-right-radius: 0;\n}\n\n.mapboxgl-crosshair,\n.mapboxgl-crosshair .mapboxgl-interactive,\n.mapboxgl-crosshair .mapboxgl-interactive:active {\n    cursor: crosshair;\n}\n.mapboxgl-boxzoom {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 0;\n    height: 0;\n    background: #fff;\n    border: 2px dotted #202020;\n    opacity: 0.5;\n}\n@media print {\n    .mapbox-improve-map {\n        display:none;\n    }\n}\n",
   ".mapboxgl-layers {\n  max-height: 100vh;\n  overflow: scroll;\n}\n.mapboxgl-layers ul {\n  background: #fff;\n  margin: 0;\n  padding: 10px;\n  border-radius: 4px;\n  list-style-type: none;\n}\n\n.mapboxgl-layers li {\n  cursor: pointer;\n  position: relative;\n  margin: 0 5px;\n}\n.mapboxgl-layers li:hover {\n  background-color: #eee;\n}\n.mapboxgl-layers li.active:before {\n  position: absolute;\n  right: 100%;\n  content: '\\2713 ';\n}\n.mapboxgl-layers li.partially-active:before {\n  color: #ccc;\n}\n\n",
-  ".feature-properties table {\n  line-height: 1;\n  margin-bottom: 10px;\n}\n\n.menu {\n  position: absolute;\n  list-style-type: none;\n  background-color: white;\n  border-radius: 4px;\n  margin: 0;\n  padding: 4px;\n}\n\n.menu li {\n  display: inline-block;\n  cursor: pointer;\n}\n\n.menu li.active {\n  background: #eaeaea;\n  font-weight: bold;\n  text-decoration: underline;\n}\n"
+  ".feature-properties table {\n  line-height: 1;\n  margin-bottom: 10px;\n}\n\n.menu {\n  position: absolute;\n  background-color: white;\n  border-radius: 4px;\n  padding: 4px;\n}\n\n.menu h2 {\n  font-size: 1rem;\n}\n.menu ul {\n  list-style-type: none;\n  margin: 0;\n  padding: 0;\n}\n\n.menu li {\n  display: inline-block;\n  cursor: pointer;\n  padding: 4px;\n  border-radius: 4px;\n}\n\n.menu li.active {\n  background: #eaeaea;\n  font-weight: bold;\n  text-decoration: underline;\n}\n"
 ].join('\n')
 
 module.exports = function insertCss () {
@@ -213,7 +253,6 @@ function createMenu (items, onChange, initialActive) {
             }
           }
           var bel0 = document.createElement("ul")
-bel0.setAttribute("class", "menu")
 appendChild(bel0, [arguments[0]])
           return bel0
         }(items.map(renderItem)))
@@ -394,7 +433,7 @@ module.exports={
       "tileSize": 256
     },
     "composite": {
-      "url": "mapbox://mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7,MB_ACCOUNT.TILESET_PREFIX-customers",
+      "url": "mapbox://mapbox.mapbox-terrain-v2,mapbox.mapbox-streets-v7,CUSTOMERS_TILESET",
       "type": "vector"
     }
   },
