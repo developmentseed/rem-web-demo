@@ -2,6 +2,9 @@
   line-height: 1;
   margin-bottom: 10px;
 }
+.feature-properties td:first-child {
+  font-weight: bold;
+}
 
 .menu {
   position: absolute;

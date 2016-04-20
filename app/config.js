@@ -5,9 +5,9 @@ module.exports = {
   customersTileset: 'devseed.rem-customers',
   "modelMenuTitle": "Diesel Price",
   models: [
-    { name: '$0.85', tileset: 'devseed.rem-VSD-85-20160420m-ea5a'},
-    { name: '$0.90', tileset: 'devseed.rem-VSD-90-20160420m-5f9a'},
-    { name: '$0.95', tileset: 'devseed.rem-VSD-95-20160420m-ba0d'},
-    { name: '$1.00', tileset: 'devseed.rem-VSD-100-20160420m-0a8d'}
+    { name: '$0.85', tileset: 'devseed.rem-VSD-85-20160420m-abb8'},
+    { name: '$0.90', tileset: 'devseed.rem-VSD-90-20160420m-a669'},
+    { name: '$0.95', tileset: 'devseed.rem-VSD-95-20160420m-84e2'},
+    { name: '$1.00', tileset: 'devseed.rem-VSD-100-20160420m-d491'}
   ],
 }

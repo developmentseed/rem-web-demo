@@ -16,17 +16,45 @@ function buildStyle () {
         }
       })
 
+      sources['highlight-features'] = {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      }
+
       this.update(sources)
     } else if (key === 'layers') {
       var layers = x.map((layer) => {
         if (layer.source === 'model') {
-          return config.models.map((src, i) => extend(layer, {
-            id: layer.id + '-model-' + i,
-            source: 'model-' + i,
-            layout: extend(layer.layout, {
-              visibility: i ? 'none' : 'visible'
+          // make per-model copy of each model-rendering layer in the template
+          var perModel = config.models.map((src, i) => {
+            return extend(layer, {
+              id: layer.id + '-model-' + i,
+              source: 'model-' + i,
+              layout: extend(layer.layout, {
+                visibility: i ? 'none' : 'visible'
+              })
             })
-          }))
+          })
+
+          // add hover styles
+          var highlight = []
+          if (layer.type === 'line') {
+            highlight = perModel.map((layer) => {
+              return extend(layer, {
+                id: layer.id + '-highlight',
+                paint: extend(layer.paint, {
+                  'line-width': multiplyLineWidth(layer.paint['line-width'], 1.25),
+                  'line-color': '#fff'
+                }),
+                layout: extend(layer.layout, {
+                  visibility: 'visible'
+                }),
+                filter: ['in', 'ClusterID', '']
+              })
+            })
+          }
+
+          return perModel.concat(highlight)
         } else {
           return layer
         }
@@ -53,6 +81,14 @@ function flatten (arr) {
 }
 function extend (o1, o2) {
   return Object.assign({}, o1, o2)
+}
+
+function multiplyLineWidth (width, m) {
+  if (typeof width === 'number') { return width * m }
+  return {
+    base: width.base * m,
+    stops: width.stops.map((s) => [s[0], m * s[1]])
+  }
 }
 
 // output to console if this is being run directly as a script

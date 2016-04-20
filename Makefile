@@ -24,11 +24,25 @@ data/merged/%: data/geojson
 		'data/geojson/$**Customers_*json'
 
 data/rem-customer-model.mbtiles: data/merged/input-customers.json
+	mkdir -p $(dir $@)
 	tippecanoe -o $@ $^
 
-data/rem-output/%.mbtiles: data/merged/%
+data/model-geometries/%.mbtiles: data/merged/%
 	mkdir -p $(dir $@)
-	tippecanoe -o $@ -n rem -z14 -b14 data/merged/$*/*.json
+	tippecanoe -o $@ -n rem -z14 -b14 \
+		-y Component \
+		-y ClusterID \
+		-y voltage \
+		-y network_type \
+		data/merged/$*/*.json
+
+data/model-properties/%.csv:
+	mkdir -p $(dir $@)
+	csvcut -c 5,6,7,8,9,10,11,12,13,14,15,16,17 data/raw/$*/$*.csv > $@
+
+data/rem-output/%.mbtiles: data/model-geometries/%.mbtiles data/model-properties/%.csv
+	mkdir -p $(dir $@)
+	tile-join -o $@ -c data/model-properties/$*.csv data/model-geometries/$*.mbtiles
 
 .PHONY: all-models
 MODEL_RAW := $(foreach model,$(wildcard data/raw/*),data/rem-output/$(notdir $(model)).mbtiles)

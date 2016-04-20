@@ -13,6 +13,8 @@ var config = require('./config')
 // default is the 'rem-web-demo' API token in the devseed account
 mapboxgl.accessToken = config.mapboxAccessToken
 
+var currentModelIndex = 0
+
 // setup the document
 ready(function () {
   insertCss()
@@ -37,12 +39,10 @@ ready(function () {
 
   // add the model switcher
   var menu = createMenu(config.models, function (model) {
-    var index = config.models.indexOf(model)
-    map.getStyle().layers.forEach((layer) => {
-      if (/model-.*$/.test(layer.id)) {
-        var visible = layer.id.endsWith('-' + index)
-        map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
-      }
+    currentModelIndex = config.models.indexOf(model)
+    getModelLayers(map).forEach((layer) => {
+      var visible = layer.id.endsWith('-' + currentModelIndex)
+      map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
     })
   }, config.models[0])
   document.body.appendChild(yo`
@@ -51,7 +51,6 @@ ready(function () {
       ${menu}
     </div>
   `)
-
 })
 
 function onLoad (map) {
@@ -70,21 +69,37 @@ function onLoad (map) {
   map.on('mousemove', function (e) {
     var features = map.queryRenderedFeatures(e.point, {
       radius: 7,
-      layers: map.getStyle().layers.map((x) => x.id).filter((x) => /model-\d+$/.test(x))
+      layers: getModelLayers(map, RegExp('model-' + currentModelIndex + '$'))
     })
     // Change the cursor style as a UI indicator.
     map.getCanvas().style.cursor = (features.length) ? 'pointer' : ''
+
+    // Show/hide popup
     if (!features.length) {
       if (popup) { popup.remove() }
       popup = null
       return
     }
-
     if (!popup) {
       popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
       popup.addTo(map)
     }
-
     popup.setLngLat(e.lngLat).setDOMContent(renderProperties(features))
+
+    // Highlight hovered feature
+    var filter = Object.keys(features.reduce((memo, x) => {
+      if (x.properties.ClusterID) { memo[x.properties.ClusterID] = true }
+      return memo
+    }, {}))
+    filter = ['in', 'ClusterID'].concat(filter)
+    getModelLayers(map, RegExp('model-' + currentModelIndex + '-highlight'))
+    .forEach((layer) => {
+      map.setFilter(layer, filter)
+    })
   })
+}
+
+function getModelLayers (map, pattern) {
+  pattern = pattern || /model-\d+$/
+  return map.getStyle().layers.map((x) => x.id).filter((x) => pattern.test(x))
 }
