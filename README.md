@@ -8,6 +8,7 @@ This repo is intended as an example/demo of taking the output from the [REM mode
 
 To get set up, first:
  - Install [tippecanoe](https://github.com/mapbox/tippecanoe)
+ - Install csvkit (`pip install csvkit`)
  - Install Node (v4 or higher)
  - Clone this repo and run `npm install`
 
