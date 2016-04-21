@@ -156,8 +156,8 @@ ready(function () {
   var menu = createMenu(config.models, function (model) {
     currentModelIndex = config.models.indexOf(model)
     getModelLayers(map).forEach((layer) => {
-      var visible = layer.id.endsWith('-' + currentModelIndex)
-      map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
+      var visible = layer.endsWith('-' + currentModelIndex)
+      map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none')
     })
   }, config.models[0])
   document.body.appendChild((function () {
