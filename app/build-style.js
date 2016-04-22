@@ -23,10 +23,14 @@ function buildStyle () {
 
       this.update(sources)
     } else if (key === 'layers') {
+      var referenceNetworkLayer
       var layers = x.map((layer) => {
         if (layer.source === 'model') {
+          // keep a copy of a network layer to use for the highlight style (below)
+          if (layer.type === 'line') { referenceNetworkLayer = layer }
+
           // make per-model copy of each model-rendering layer in the template
-          var perModel = config.models.map((src, i) => {
+          return config.models.map((src, i) => {
             return extend(layer, {
               id: layer.id + '-model-' + i,
               source: 'model-' + i,
@@ -35,30 +39,27 @@ function buildStyle () {
               })
             })
           })
-
-          // add hover styles
-          var highlight = []
-          if (layer.type === 'line') {
-            highlight = perModel.map((layer) => {
-              return extend(layer, {
-                id: layer.id + '-highlight',
-                paint: extend(layer.paint, {
-                  'line-width': multiplyLineWidth(layer.paint['line-width'], 1.25),
-                  'line-color': '#fff'
-                }),
-                layout: extend(layer.layout, {
-                  visibility: 'visible'
-                }),
-                filter: ['in', 'ClusterID', '']
-              })
-            })
-          }
-
-          return perModel.concat(highlight)
         } else {
           return layer
         }
       })
+
+      // add hover style layer
+      var highlight = extend(referenceNetworkLayer, {
+        id: 'rem-network-highlight',
+        source: 'highlight-features',
+        paint: {
+          'line-width': multiplyLineWidth(referenceNetworkLayer.paint['line-width'], 1.25),
+          'line-color': '#fff'
+        },
+        layout: extend(referenceNetworkLayer.layout, {
+          visibility: 'visible'
+        })
+      })
+      delete highlight['source-layer']
+      delete highlight.filter
+      layers.push(highlight)
+
       this.update(flatten(layers))
     } else if (isString(x)) {
       this.update(x.replace(/MB_ACCOUNT/g, config.mapboxAccount)

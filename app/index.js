@@ -51,10 +51,15 @@ ready(function () {
       ${menu}
     </div>
   `)
+
+  document.body.appendChild(yo`
+    <div class='legend'>
+    </div>
+  `)
 })
 
 function onLoad (map) {
-  map.addControl(new mapboxgl.Navigation({ position: 'bottom-right' }))
+  map.addControl(new mapboxgl.Navigation({ position: 'top-right' }))
   var satLayers = map.getStyle().layers
     .map((layer) => layer.id)
     .filter((id) => id.startsWith('satellite'))
@@ -65,7 +70,27 @@ function onLoad (map) {
     }
   }))
 
+  // Keep track of the visible network features as the map moves around
+  // (This is hackery to workaround this issue: https://github.com/mapbox/mapbox-gl-js/issues/1715)
+  var visibleFeatures = []
+  map.on('moveend', updateVisibleFeatures)
+  updateVisibleFeatures()
+  function updateVisibleFeatures () {
+    function onData () {
+      if(!map.loaded()) { return }
+      map.off('render', onData)
+      visibleFeatures = map.queryRenderedFeatures({
+        layers: getModelLayers(map, RegExp('network.*model-' + currentModelIndex + '$'))
+      })
+    }
+    map.on('render', onData)
+  }
+
   var popup
+  var hoveredClusterId
+  function isHoveredNetwork (feature) {
+    return feature.properties.ClusterID === hoveredClusterId
+  }
   map.on('mousemove', function (e) {
     var features = map.queryRenderedFeatures(e.point, {
       radius: 7,
@@ -81,23 +106,23 @@ function onLoad (map) {
       return
     }
 
-    features = [features[0]]
+    var feature = features[0]
+
     if (!popup) {
       popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
       popup.addTo(map)
     }
-    popup.setLngLat(e.lngLat).setDOMContent(renderProperties(features))
+    popup.setLngLat(e.lngLat).setDOMContent(renderProperties([feature]))
 
-    // Highlight hovered feature
-    var filter = Object.keys(features.reduce((memo, x) => {
-      if (x.properties.ClusterID) { memo[x.properties.ClusterID] = true }
-      return memo
-    }, {}))
-    filter = ['in', 'ClusterID'].concat(filter)
-    getModelLayers(map, RegExp('model-' + currentModelIndex + '-highlight'))
-    .forEach((layer) => {
-      map.setFilter(layer, filter)
-    })
+    if (hoveredClusterId !== feature.properties.ClusterID) {
+      hoveredClusterId = feature.properties.ClusterID
+      // Highlight hovered feature
+      var hovered = visibleFeatures.filter(isHoveredNetwork)
+      map.getSource('highlight-features').setData({
+        type: 'FeatureCollection',
+        features: hovered
+      })
+    }
   })
 }
 
