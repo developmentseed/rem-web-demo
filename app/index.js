@@ -8,6 +8,7 @@ var insertCss = require('./insert-css')
 var renderProperties = require('./render-properties')
 var buildStyle = require('./build-style')
 var createMenu = require('./menu')
+var concave = require('./concave')
 var config = require('./config')
 
 // default is the 'rem-web-demo' API token in the devseed account
@@ -74,6 +75,17 @@ function onLoad (map) {
     layers: {
       'Satellite Layer': satLayers,
       'Currently Electrified Buildings': [ 'customers-electrified' ]
+    },
+    onChange: function (e) {
+      // adjust the highlight layer based on whether or not the satellite layer
+      // is turned on
+      if (e.name === 'Satellite Layer') {
+        if (e.active) {
+          map.setPaintProperty('rem-network-highlight', 'fill-color', '#ffffff')
+        } else {
+          map.setPaintProperty('rem-network-highlight', 'fill-color', '#888888')
+        }
+      }
     }
   }))
 
@@ -117,11 +129,11 @@ function onLoad (map) {
     if (hoveredClusterId !== feature.properties.ClusterID) {
       hoveredClusterId = feature.properties.ClusterID
       // Highlight hovered feature
-      var hovered = visibleFeatures.filter(isHoveredNetwork)
-      map.getSource('highlight-features').setData({
+      var hovered = concave({
         type: 'FeatureCollection',
-        features: hovered
+        features: visibleFeatures.filter(isHoveredNetwork)
       })
+      map.getSource('highlight-features').setData(hovered)
     }
   })
 }

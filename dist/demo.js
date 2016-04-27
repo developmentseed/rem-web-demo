@@ -47,22 +47,36 @@ function buildStyle () {
       })
 
       // add hover style layer
-      var highlight = extend(referenceNetworkLayer, {
+      var highlightFill = {
         id: 'rem-network-highlight',
         source: 'highlight-features',
+        type: 'fill',
         paint: {
-          'line-width': multiplyLineWidth(referenceNetworkLayer.paint['line-width'], 1.25),
-          'line-color': '#fff'
+          'fill-color': '#888888',
+          'fill-opacity': 0.16666,
         },
-        layout: extend(referenceNetworkLayer.layout, {
+        layout: {
           visibility: 'visible'
-        })
-      })
-      delete highlight['source-layer']
-      delete highlight.filter
-      layers.push(highlight)
+        }
+      }
 
-      this.update(flatten(layers))
+      var highlightLine = {
+        id: 'rem-network-highlight-line',
+        source: 'highlight-features',
+        type: 'line',
+        paint: {
+          'line-color': '#ff8800',
+          'line-width': 2,
+          'line-opacity': 0.75
+        }
+      }
+
+      layers = flatten(layers)
+      var remIndex = layers.indexOf(layers.find((l) => /^model/.test(l.source)))
+      layers.splice(remIndex, 0, highlightFill)
+      layers.push(highlightLine)
+
+      this.update(layers)
     } else if (isString(x)) {
       this.update(x.replace(/MB_ACCOUNT/g, config.mapboxAccount)
                     .replace(/CUSTOMERS_TILESET/g, config.customersTileset)
@@ -89,7 +103,42 @@ if (require.main === module) {
   console.log(JSON.stringify(buildStyle(), null, 2))
 }
 
-},{"./config":2,"./style.template.json":8,"lodash.flatten":39,"traverse":181}],2:[function(require,module,exports){
+},{"./config":3,"./style.template.json":9,"lodash.flatten":41,"traverse":191}],2:[function(require,module,exports){
+var coordEach = require('turf-meta').coordEach
+var concaveman = require('concaveman')
+
+module.exports = concave
+
+// can be replaced with turf-concave once turf 3.0 is out
+function concave (features) {
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [ -180, -85 ],
+          [ -180, 85 ],
+          [ 180, 85 ],
+          [ 180, -85 ],
+          [ -180, -85 ]
+        ],
+        concaveman(coordAll(features), 5)
+      ]
+    }
+  }
+}
+
+function coordAll(layer) {
+    var coords = []
+    coordEach(layer, function (coord) {
+        coords.push(coord)
+    })
+    return coords
+}
+
+},{"concaveman":11,"turf-meta":192}],3:[function(require,module,exports){
 module.exports = {
   mapboxAccessToken: "pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJnUi1mbkVvIn0.018aLhX0Mb0tdtaT2QNe2Q" ||
   'pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJjaW14d2w2MW8wM2tndXJra2locWczMGR2In0._7KBuOaYm9R1rK3K6hdJlQ',
@@ -104,7 +153,7 @@ module.exports = {
   ],
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 
 var path = require('path')
 var mapboxgl = require('mapbox-gl')
@@ -115,6 +164,7 @@ var insertCss = require('./insert-css')
 var renderProperties = require('./render-properties')
 var buildStyle = require('./build-style')
 var createMenu = require('./menu')
+var concave = require('./concave')
 var config = require('./config')
 
 // default is the 'rem-web-demo' API token in the devseed account
@@ -301,6 +351,17 @@ function onLoad (map) {
     layers: {
       'Satellite Layer': satLayers,
       'Currently Electrified Buildings': [ 'customers-electrified' ]
+    },
+    onChange: function (e) {
+      // adjust the highlight layer based on whether or not the satellite layer
+      // is turned on
+      if (e.name === 'Satellite Layer') {
+        if (e.active) {
+          map.setPaintProperty('rem-network-highlight', 'fill-color', '#ffffff')
+        } else {
+          map.setPaintProperty('rem-network-highlight', 'fill-color', '#888888')
+        }
+      }
     }
   }))
 
@@ -344,11 +405,11 @@ function onLoad (map) {
     if (hoveredClusterId !== feature.properties.ClusterID) {
       hoveredClusterId = feature.properties.ClusterID
       // Highlight hovered feature
-      var hovered = visibleFeatures.filter(isHoveredNetwork)
-      map.getSource('highlight-features').setData({
+      var hovered = concave({
         type: 'FeatureCollection',
-        features: hovered
+        features: visibleFeatures.filter(isHoveredNetwork)
       })
+      map.getSource('highlight-features').setData(hovered)
     }
   })
 }
@@ -358,7 +419,7 @@ function getModelLayers (map, pattern) {
   return map.getStyle().layers.map((x) => x.id).filter((x) => pattern.test(x))
 }
 
-},{"./build-style":1,"./config":2,"./insert-css":4,"./menu":5,"./ready":6,"./render-properties":7,"mapbox-gl":81,"mapbox-gl-layers":42,"path":173,"yo-yo":194}],4:[function(require,module,exports){
+},{"./build-style":1,"./concave":2,"./config":3,"./insert-css":5,"./menu":6,"./ready":7,"./render-properties":8,"mapbox-gl":83,"mapbox-gl-layers":44,"path":176,"yo-yo":207}],5:[function(require,module,exports){
 
 var path = require('path')
 var css = [
@@ -374,7 +435,7 @@ module.exports = function insertCss () {
   document.getElementsByTagName('head')[0].appendChild(style)
 }
 
-},{"path":173}],5:[function(require,module,exports){
+},{"path":176}],6:[function(require,module,exports){
 var yo = require('yo-yo')
 
 module.exports = createMenu
@@ -467,7 +528,7 @@ appendChild(bel0, [arguments[2]])
   }
 }
 
-},{"yo-yo":194}],6:[function(require,module,exports){
+},{"yo-yo":207}],7:[function(require,module,exports){
 // http://youmightnotneedjquery.com/
 module.exports = function ready(fn) {
   if (document.readyState != 'loading') {
@@ -477,7 +538,7 @@ module.exports = function ready(fn) {
   }
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var yo = require('yo-yo')
 var flatten = require('lodash.flatten')
 var numeral = require('numeral')
@@ -714,7 +775,7 @@ function format (value, fmt) {
 }
 
 
-},{"lodash.flatten":39,"numeral":172,"yo-yo":194}],8:[function(require,module,exports){
+},{"lodash.flatten":41,"numeral":175,"yo-yo":207}],9:[function(require,module,exports){
 module.exports={
   "version": 8,
   "name": "REM demo",
@@ -6933,7 +6994,7 @@ module.exports={
   "pitch": 0
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -7294,7 +7355,348 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":184}],10:[function(require,module,exports){
+},{"util/":197}],11:[function(require,module,exports){
+'use strict';
+
+var rbush = require('rbush');
+var convexHull = require('monotone-convex-hull-2d');
+var Queue = require('tinyqueue');
+var pointInPolygon = require('point-in-polygon');
+var orient = require('robust-orientation')[3];
+
+module.exports = concaveman;
+
+function concaveman(points, concavity, lengthThreshold) {
+    // a relative measure of concavity; higher value means simpler hull
+    concavity = Math.max(0, concavity === undefined ? 2 : concavity);
+
+    // when a segment goes below this length threshold, it won't be drilled down further
+    lengthThreshold = lengthThreshold || 0;
+
+    // start with a convex hull of the points
+    var hull = fastConvexHull(points);
+
+    // index the points with an R-tree
+    var tree = rbush(16, ['[0]', '[1]', '[0]', '[1]']).load(points);
+
+    // turn the convex hull into a linked list and populate the initial edge queue with the nodes
+    var queue = [];
+    for (var i = 0, last; i < hull.length; i++) {
+        var p = hull[i];
+        tree.remove(p);
+        last = insertNode(p, last);
+        queue.push(last);
+    }
+
+    // index the segments with an R-tree (for intersection checks)
+    var segTree = rbush(16, ['.minX', '.minY', '.maxX', '.maxY']);
+    for (i = 0; i < queue.length; i++) segTree.insert(updateBBox(queue[i]));
+
+    var sqConcavity = concavity * concavity;
+    var sqLenThreshold = lengthThreshold * lengthThreshold;
+
+    // process edges one by one
+    while (queue.length) {
+        var node = queue.shift();
+        var a = node.p;
+        var b = node.next.p;
+
+        // skip the edge if it's already short enough
+        var sqLen = getSqDist(a, b);
+        if (sqLen < sqLenThreshold) continue;
+
+        var maxSqLen = sqLen / sqConcavity;
+
+        // find the best connection point for the current edge to flex inward to
+        p = findCandidate(tree, node.prev.p, a, b, node.next.next.p, maxSqLen, segTree);
+
+        // if we found a connection and it satisfies our concavity measure
+        if (p && Math.min(getSqDist(p, a), getSqDist(p, b)) <= maxSqLen) {
+            // connect the edge endpoints through this point and add 2 new edges to the queue
+            queue.push(node);
+            queue.push(insertNode(p, node));
+
+            // update point and segment indexes
+            tree.remove(p);
+            segTree.remove(node);
+            segTree.insert(updateBBox(node));
+            segTree.insert(updateBBox(node.next));
+        }
+    }
+
+    // convert the resulting hull linked list to an array of points
+    node = last;
+    var concave = [];
+    do {
+        concave.push(node.p);
+        node = node.next;
+    } while (node !== last);
+
+    concave.push(node.p);
+
+    return concave;
+}
+
+function findCandidate(tree, a, b, c, d, maxDist, segTree) {
+    var queue = new Queue(null, compareDist);
+    var node = tree.data;
+
+    // search through the point R-tree with a depth-first search using a priority queue
+    // in the order of distance to the edge (b, c)
+    while (node) {
+        for (var i = 0; i < node.children.length; i++) {
+            var child = node.children[i];
+
+            var dist = node.leaf ? sqSegDist(child, b, c) : sqSegBoxDist(b, c, child.bbox);
+            if (dist > maxDist) continue; // skip the node if it's farther than we ever need
+
+            queue.push({
+                node: child,
+                dist: dist
+            });
+        }
+
+        while (queue.length && !queue.peek().node.children) {
+            var item = queue.pop();
+            var p = item.node;
+
+            // skip all points that are as close to adjacent edges (a,b) and (c,d),
+            // and points that would introduce self-intersections when connected
+            var d0 = sqSegDist(p, a, b);
+            var d1 = sqSegDist(p, c, d);
+            if (item.dist < d0 && item.dist < d1 &&
+                noIntersections(b, p, segTree) &&
+                noIntersections(c, p, segTree)) return p;
+        }
+
+        node = queue.pop();
+        if (node) node = node.node;
+    }
+
+    return null;
+}
+
+function compareDist(a, b) {
+    return a.dist - b.dist;
+}
+
+// square distance from a segment bounding box to the given one
+function sqSegBoxDist(a, b, bbox) {
+    if (inside(a, bbox) || inside(b, bbox)) return 0;
+    var d1 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[1], bbox[2], bbox[1]);
+    if (d1 === 0) return 0;
+    var d2 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[1], bbox[0], bbox[3]);
+    if (d2 === 0) return 0;
+    var d3 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[2], bbox[1], bbox[2], bbox[3]);
+    if (d3 === 0) return 0;
+    var d4 = sqSegSegDist(a[0], a[1], b[0], b[1], bbox[0], bbox[3], bbox[2], bbox[3]);
+    if (d4 === 0) return 0;
+    return Math.min(d1, d2, d3, d4);
+}
+
+function inside(a, bbox) {
+    return a[0] >= bbox[0] &&
+           a[0] <= bbox[2] &&
+           a[1] >= bbox[1] &&
+           a[1] <= bbox[3];
+}
+
+// check if the edge (a,b) doesn't intersect any other edges
+function noIntersections(a, b, segTree) {
+    var minX = Math.min(a[0], b[0]);
+    var minY = Math.min(a[1], b[1]);
+    var maxX = Math.max(a[0], b[0]);
+    var maxY = Math.max(a[1], b[1]);
+
+    var edges = segTree.search([minX, minY, maxX, maxY]);
+    for (var i = 0; i < edges.length; i++) {
+        if (intersects(edges[i].p, edges[i].next.p, a, b)) return false;
+    }
+    return true;
+}
+
+// check if the edges (p1,q1) and (p2,q2) intersect
+function intersects(p1, q1, p2, q2) {
+    return p1 !== q2 && q1 !== p2 &&
+        orient(p1, q1, p2) > 0 !== orient(p1, q1, q2) > 0 &&
+        orient(p2, q2, p1) > 0 !== orient(p2, q2, q1) > 0;
+}
+
+// update the bounding box of a node's edge
+function updateBBox(node) {
+    var p1 = node.p;
+    var p2 = node.next.p;
+    node.minX = Math.min(p1[0], p2[0]);
+    node.minY = Math.min(p1[1], p2[1]);
+    node.maxX = Math.max(p1[0], p2[0]);
+    node.maxY = Math.max(p1[1], p2[1]);
+    return node;
+}
+
+// speed up convex hull by filtering out points inside quadrilateral formed by 4 extreme points
+function fastConvexHull(points) {
+    var left = points[0];
+    var top = points[0];
+    var right = points[0];
+    var bottom = points[0];
+
+    // find the leftmost, rightmost, topmost and bottommost points
+    for (var i = 0; i < points.length; i++) {
+        var p = points[i];
+        if (p[0] < left[0]) left = p;
+        if (p[0] > right[0]) right = p;
+        if (p[1] < top[1]) top = p;
+        if (p[1] > bottom[1]) bottom = p;
+    }
+
+    // filter out points that are inside the resulting quadrilateral
+    var cull = [left, top, right, bottom];
+    var filtered = cull.slice();
+    for (i = 0; i < points.length; i++) {
+        if (!pointInPolygon(points[i], cull)) filtered.push(points[i]);
+    }
+
+    // get convex hull around the filtered points
+    var indices = convexHull(filtered);
+
+    // return the hull as array of points (rather than indices)
+    var hull = [];
+    for (i = 0; i < indices.length; i++) hull.push(filtered[indices[i]]);
+    return hull;
+}
+
+// create a new node in a doubly linked list
+function insertNode(p, prev) {
+    var node = {
+        p: p,
+        prev: null,
+        next: null,
+        minX: 0,
+        minY: 0,
+        maxX: 0,
+        maxY: 0
+    };
+
+    if (!prev) {
+        node.prev = node;
+        node.next = node;
+
+    } else {
+        node.next = prev.next;
+        node.prev = prev;
+        prev.next.prev = node;
+        prev.next = node;
+    }
+    return node;
+}
+
+// square distance between 2 points
+function getSqDist(p1, p2) {
+
+    var dx = p1[0] - p2[0],
+        dy = p1[1] - p2[1];
+
+    return dx * dx + dy * dy;
+}
+
+// square distance from a point to a segment
+function sqSegDist(p, p1, p2) {
+
+    var x = p1[0],
+        y = p1[1],
+        dx = p2[0] - x,
+        dy = p2[1] - y;
+
+    if (dx !== 0 || dy !== 0) {
+
+        var t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+
+        if (t > 1) {
+            x = p2[0];
+            y = p2[1];
+
+        } else if (t > 0) {
+            x += dx * t;
+            y += dy * t;
+        }
+    }
+
+    dx = p[0] - x;
+    dy = p[1] - y;
+
+    return dx * dx + dy * dy;
+}
+
+// segment to segment distance, ported from http://geomalgorithms.com/a07-_distance.html by Dan Sunday
+function sqSegSegDist(x0, y0, x1, y1, x2, y2, x3, y3) {
+    var ux = x1 - x0;
+    var uy = y1 - y0;
+    var vx = x3 - x2;
+    var vy = y3 - y2;
+    var wx = x0 - x2;
+    var wy = y0 - y2;
+    var a = ux * ux + uy * uy;
+    var b = ux * vx + uy * vy;
+    var c = vx * vx + vy * vy;
+    var d = ux * wx + uy * wy;
+    var e = vx * wx + vy * wy;
+    var D = a * c - b * b;
+
+    var sc, sN, tc, tN;
+    var sD = D;
+    var tD = D;
+
+    if (D === 0) {
+        sN = 0;
+        sD = 1;
+        tN = e;
+        tD = c;
+    } else {
+        sN = b * e - c * d;
+        tN = a * e - b * d;
+        if (sN < 0) {
+            sN = 0;
+            tN = e;
+            tD = c;
+        } else if (sN > sD) {
+            sN = sD;
+            tN = e + b;
+            tD = c;
+        }
+    }
+
+    if (tN < 0.0) {
+        tN = 0.0;
+        if (-d < 0.0) sN = 0.0;
+        else if (-d > a) sN = sD;
+        else {
+            sN = -d;
+            sD = a;
+        }
+    } else if (tN > tD) {
+        tN = tD;
+        if ((-d + b) < 0.0) sN = 0;
+        else if (-d + b > a) sN = sD;
+        else {
+            sN = -d + b;
+            sD = a;
+        }
+    }
+
+    sc = sN === 0 ? 0 : sN / sD;
+    tc = tN === 0 ? 0 : tN / tD;
+
+    var cx = (1 - sc) * x0 + sc * x1;
+    var cy = (1 - sc) * y0 + sc * y1;
+    var cx2 = (1 - tc) * x2 + tc * x3;
+    var cy2 = (1 - tc) * y2 + tc * y3;
+    var dx = cx2 - cx;
+    var dy = cy2 - cy;
+
+    return dx * dx + dy * dy;
+}
+
+},{"monotone-convex-hull-2d":173,"point-in-polygon":180,"rbush":182,"robust-orientation":184,"tinyqueue":190}],12:[function(require,module,exports){
 // (c) Dean McNamee <dean@gmail.com>, 2012.
 //
 // https://github.com/deanm/css-color-parser-js
@@ -7496,7 +7898,7 @@ function parseCSSColor(css_str) {
 
 try { exports.parseCSSColor = parseCSSColor } catch(e) { }
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 
 module.exports = createFilter;
@@ -7561,7 +7963,7 @@ function compareFn(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var wgs84 = require('wgs84');
 
 module.exports.geometry = geometry;
@@ -7627,7 +8029,7 @@ function rad(_) {
     return _ * Math.PI / 180;
 }
 
-},{"wgs84":193}],13:[function(require,module,exports){
+},{"wgs84":206}],15:[function(require,module,exports){
 var geojsonArea = require('geojson-area');
 
 module.exports = rewind;
@@ -7678,7 +8080,7 @@ function cw(_) {
     return geojsonArea.ring(_) >= 0;
 }
 
-},{"geojson-area":12}],14:[function(require,module,exports){
+},{"geojson-area":14}],16:[function(require,module,exports){
 'use strict';
 
 module.exports = clip;
@@ -7831,7 +8233,7 @@ function newSlice(slices, slice, area, dist) {
     return [];
 }
 
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 module.exports = convert;
@@ -7977,7 +8379,7 @@ function calcRingBBox(min, max, points) {
     }
 }
 
-},{"./simplify":17}],16:[function(require,module,exports){
+},{"./simplify":19}],18:[function(require,module,exports){
 'use strict';
 
 module.exports = geojsonvt;
@@ -8219,7 +8621,7 @@ function isClippedSquare(tile, extent, buffer) {
     return true;
 }
 
-},{"./clip":14,"./convert":15,"./tile":18,"./transform":19,"./wrap":20}],17:[function(require,module,exports){
+},{"./clip":16,"./convert":17,"./tile":20,"./transform":21,"./wrap":22}],19:[function(require,module,exports){
 'use strict';
 
 module.exports = simplify;
@@ -8295,7 +8697,7 @@ function getSqSegDist(p, a, b) {
     return dx * dx + dy * dy;
 }
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 module.exports = createTile;
@@ -8382,7 +8784,7 @@ function addFeature(tile, feature, tolerance, noSimplify) {
     }
 }
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 exports.tile = transformTile;
@@ -8425,7 +8827,7 @@ function transformPoint(p, extent, z2, tx, ty) {
     return [x, y];
 }
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 var clip = require('./clip');
@@ -8488,7 +8890,7 @@ function shiftCoords(points, offset) {
     return newPoints;
 }
 
-},{"./clip":14}],21:[function(require,module,exports){
+},{"./clip":16}],23:[function(require,module,exports){
 /**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
@@ -8526,7 +8928,7 @@ exports.quat = require("./gl-matrix/quat.js");
 exports.vec2 = require("./gl-matrix/vec2.js");
 exports.vec3 = require("./gl-matrix/vec3.js");
 exports.vec4 = require("./gl-matrix/vec4.js");
-},{"./gl-matrix/common.js":22,"./gl-matrix/mat2.js":23,"./gl-matrix/mat2d.js":24,"./gl-matrix/mat3.js":25,"./gl-matrix/mat4.js":26,"./gl-matrix/quat.js":27,"./gl-matrix/vec2.js":28,"./gl-matrix/vec3.js":29,"./gl-matrix/vec4.js":30}],22:[function(require,module,exports){
+},{"./gl-matrix/common.js":24,"./gl-matrix/mat2.js":25,"./gl-matrix/mat2d.js":26,"./gl-matrix/mat3.js":27,"./gl-matrix/mat4.js":28,"./gl-matrix/quat.js":29,"./gl-matrix/vec2.js":30,"./gl-matrix/vec3.js":31,"./gl-matrix/vec4.js":32}],24:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -8598,7 +9000,7 @@ glMatrix.equals = function(a, b) {
 
 module.exports = glMatrix;
 
-},{}],23:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -9036,7 +9438,7 @@ mat2.multiplyScalarAndAdd = function(out, a, b, scale) {
 
 module.exports = mat2;
 
-},{"./common.js":22}],24:[function(require,module,exports){
+},{"./common.js":24}],26:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -9507,7 +9909,7 @@ mat2d.equals = function (a, b) {
 
 module.exports = mat2d;
 
-},{"./common.js":22}],25:[function(require,module,exports){
+},{"./common.js":24}],27:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -10255,7 +10657,7 @@ mat3.equals = function (a, b) {
 
 module.exports = mat3;
 
-},{"./common.js":22}],26:[function(require,module,exports){
+},{"./common.js":24}],28:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -12393,7 +12795,7 @@ mat4.equals = function (a, b) {
 
 module.exports = mat4;
 
-},{"./common.js":22}],27:[function(require,module,exports){
+},{"./common.js":24}],29:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -12995,7 +13397,7 @@ quat.equals = vec4.equals;
 
 module.exports = quat;
 
-},{"./common.js":22,"./mat3.js":25,"./vec3.js":29,"./vec4.js":30}],28:[function(require,module,exports){
+},{"./common.js":24,"./mat3.js":27,"./vec3.js":31,"./vec4.js":32}],30:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -13584,7 +13986,7 @@ vec2.equals = function (a, b) {
 
 module.exports = vec2;
 
-},{"./common.js":22}],29:[function(require,module,exports){
+},{"./common.js":24}],31:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -14363,7 +14765,7 @@ vec3.equals = function (a, b) {
 
 module.exports = vec3;
 
-},{"./common.js":22}],30:[function(require,module,exports){
+},{"./common.js":24}],32:[function(require,module,exports){
 /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -14974,7 +15376,7 @@ vec4.equals = function (a, b) {
 
 module.exports = vec4;
 
-},{"./common.js":22}],31:[function(require,module,exports){
+},{"./common.js":24}],33:[function(require,module,exports){
 'use strict';
 
 module.exports = GridIndex;
@@ -15133,7 +15535,7 @@ GridIndex.prototype.toArrayBuffer = function() {
     return array.buffer;
 };
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -15219,7 +15621,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -15244,7 +15646,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 'use strict';
 
 var sort = require('./sort');
@@ -15290,7 +15692,7 @@ KDBush.prototype = {
 function defaultGetX(p) { return p[0]; }
 function defaultGetY(p) { return p[1]; }
 
-},{"./range":35,"./sort":36,"./within":37}],35:[function(require,module,exports){
+},{"./range":37,"./sort":38,"./within":39}],37:[function(require,module,exports){
 'use strict';
 
 module.exports = range;
@@ -15338,7 +15740,7 @@ function range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
     return result;
 }
 
-},{}],36:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 'use strict';
 
 module.exports = sortKD;
@@ -15406,7 +15808,7 @@ function swap(arr, i, j) {
     arr[j] = tmp;
 }
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 'use strict';
 
 module.exports = within;
@@ -15458,7 +15860,7 @@ function sqDist(ax, ay, bx, by) {
     return dx * dx + dy * dy;
 }
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 /**
  * lodash 4.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -15809,7 +16211,7 @@ function isObjectLike(value) {
 
 module.exports = baseFlatten;
 
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 /**
  * lodash 4.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -15841,7 +16243,7 @@ function flatten(array) {
 
 module.exports = flatten;
 
-},{"lodash._baseflatten":38}],40:[function(require,module,exports){
+},{"lodash._baseflatten":40}],42:[function(require,module,exports){
 'use strict';
 
 function createFunction(parameters, defaultType) {
@@ -16008,7 +16410,7 @@ module.exports['piecewise-constant'] = function(parameters) {
     return createFunction(parameters, 'interval');
 };
 
-},{}],41:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 'use strict';
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -16132,7 +16534,7 @@ function isWebGLSupported(failIfMajorPerformanceCaveat) {
     }
 }
 
-},{}],42:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 var yo = require('yo-yo')
 var Control = require('mapbox-gl/js/ui/control/control')
 
@@ -16144,6 +16546,7 @@ module.exports = Layers
  * @param {string} [options.type='multiple'] Selection type: `multiple` to allow independently toggling each layer/group, `single` to only choose one at a time.
  * @param {Object} [options.layers] An object determining which layers to include.  Each key is a display name (what's shown in the UI), and each value is the corresponding layer id in the map style (or an array of layer ids).
  * @param {string} [options.position='top-right'] A string indicating position on the map. Options are `top-right`, `top-left`, `bottom-right`, `bottom-left`.
+ * @param {function} [options.onChange] Optional callback called with `{name: dispayName, layerIds: [...], active: true|false }` for the clicked layer
  * @example
  * (new Layers({ 'National Parks': 'national_park', 'Other Parks': 'parks' }))
  * .addTo(map)
@@ -16281,12 +16684,13 @@ appendChild(bel1, ["\n    ",bel0,"\n  "])
             }
           }
           var bel0 = document.createElement("li")
-bel0.setAttribute("data-layer-id", arguments[0])
-bel0["onclick"] = arguments[1]
-bel0.setAttribute("class", arguments[2])
-appendChild(bel0, ["\n          ",arguments[3],"\n        "])
+bel0.setAttribute("data-layer-name", arguments[0])
+bel0.setAttribute("data-layer-id", arguments[1])
+bel0["onclick"] = arguments[2]
+bel0.setAttribute("class", arguments[3])
+appendChild(bel0, ["\n          ",arguments[4],"\n        "])
           return bel0
-        }(ids.join(','),this._onClick,className,name))
+        }(name,ids.join(','),this._onClick,className,name))
       }),className))
 }
 
@@ -16294,6 +16698,7 @@ Layers.prototype._onClick = function _onClick (e) {
   var ids = e.currentTarget.getAttribute('data-layer-id').split(',')
     .filter(this._layerExists)
 
+  var activated = false
   if (this.options.type === 'single') {
     // single selection mode
     if (this._currentSelection) {
@@ -16306,11 +16711,21 @@ Layers.prototype._onClick = function _onClick (e) {
       this._map.setLayoutProperty(id, 'visibility', 'visible')
     })
     this._currentSelection = ids
+    activated = true
   } else {
     // 'toggle' mode
     var visibility = ids.some(this._isActive) ? 'none' : 'visible'
     ids.forEach((id) => {
       this._map.setLayoutProperty(id, 'visibility', visibility)
+    })
+    activated = visibility === 'visible'
+  }
+
+  if (this.options.onChange) {
+    this.options.onChange({
+      name: e.currentTarget.getAttribute('data-layer-name'),
+      layerIds: ids,
+      active: activated
     })
   }
 }
@@ -16324,7 +16739,7 @@ Layers.prototype._layerExists = function (id) {
 }
 
 
-},{"mapbox-gl/js/ui/control/control":139,"yo-yo":194}],43:[function(require,module,exports){
+},{"mapbox-gl/js/ui/control/control":141,"yo-yo":207}],45:[function(require,module,exports){
 'use strict';
 
 var format = require('util').format;
@@ -16342,7 +16757,7 @@ function ValidationError(key, value /*, message, ...*/) {
 
 module.exports = ValidationError;
 
-},{"util":184}],44:[function(require,module,exports){
+},{"util":197}],46:[function(require,module,exports){
 'use strict';
 
 module.exports = function (output) {
@@ -16355,7 +16770,7 @@ module.exports = function (output) {
     return output;
 };
 
-},{}],45:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 'use strict';
 
 module.exports = function getType(val) {
@@ -16374,7 +16789,7 @@ module.exports = function getType(val) {
     }
 };
 
-},{}],46:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 'use strict';
 
 // Turn jsonlint-lines-primitives objects into primitive objects
@@ -16386,7 +16801,7 @@ module.exports = function unbundle(value) {
     }
 };
 
-},{}],47:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16453,7 +16868,7 @@ module.exports = function validate(options) {
     }
 };
 
-},{"../error/validation_error":43,"../util/extend":44,"../util/get_type":45,"./validate_array":48,"./validate_boolean":49,"./validate_color":50,"./validate_constants":51,"./validate_enum":52,"./validate_filter":53,"./validate_function":54,"./validate_layer":56,"./validate_number":58,"./validate_object":59,"./validate_source":61,"./validate_string":62}],48:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/extend":46,"../util/get_type":47,"./validate_array":50,"./validate_boolean":51,"./validate_color":52,"./validate_constants":53,"./validate_enum":54,"./validate_filter":55,"./validate_function":56,"./validate_layer":58,"./validate_number":60,"./validate_object":61,"./validate_source":63,"./validate_string":64}],50:[function(require,module,exports){
 'use strict';
 
 var getType = require('../util/get_type');
@@ -16507,7 +16922,7 @@ module.exports = function validateArray(options) {
     return errors;
 };
 
-},{"../error/validation_error":43,"../util/get_type":45,"./validate":47}],49:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47,"./validate":49}],51:[function(require,module,exports){
 'use strict';
 
 var getType = require('../util/get_type');
@@ -16525,7 +16940,7 @@ module.exports = function validateBoolean(options) {
     return [];
 };
 
-},{"../error/validation_error":43,"../util/get_type":45}],50:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47}],52:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16548,7 +16963,7 @@ module.exports = function validateColor(options) {
     return [];
 };
 
-},{"../error/validation_error":43,"../util/get_type":45,"csscolorparser":10}],51:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47,"csscolorparser":12}],53:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16582,7 +16997,7 @@ module.exports = function validateConstants(options) {
 
 };
 
-},{"../error/validation_error":43,"../util/get_type":45}],52:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47}],54:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16600,7 +17015,7 @@ module.exports = function validateEnum(options) {
     return errors;
 };
 
-},{"../error/validation_error":43,"../util/unbundle_jsonlint":46}],53:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/unbundle_jsonlint":48}],55:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16692,7 +17107,7 @@ module.exports = function validateFilter(options) {
     return errors;
 };
 
-},{"../error/validation_error":43,"../util/get_type":45,"../util/unbundle_jsonlint":46,"./validate_enum":52}],54:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47,"../util/unbundle_jsonlint":48,"./validate_enum":54}],56:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16816,7 +17231,7 @@ module.exports = function validateFunction(options) {
 
 };
 
-},{"../error/validation_error":43,"../util/get_type":45,"./validate":47,"./validate_array":48,"./validate_number":58,"./validate_object":59}],55:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47,"./validate":49,"./validate_array":50,"./validate_number":60,"./validate_object":61}],57:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16840,7 +17255,7 @@ module.exports = function(options) {
     return errors;
 };
 
-},{"../error/validation_error":43,"./validate_string":62}],56:[function(require,module,exports){
+},{"../error/validation_error":45,"./validate_string":64}],58:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -16953,7 +17368,7 @@ module.exports = function validateLayer(options) {
     return errors;
 };
 
-},{"../error/validation_error":43,"../util/extend":44,"../util/unbundle_jsonlint":46,"./validate_filter":53,"./validate_layout_property":57,"./validate_object":59,"./validate_paint_property":60}],57:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/extend":46,"../util/unbundle_jsonlint":48,"./validate_filter":55,"./validate_layout_property":59,"./validate_object":61,"./validate_paint_property":62}],59:[function(require,module,exports){
 'use strict';
 
 var validate = require('./validate');
@@ -16992,7 +17407,7 @@ module.exports = function validateLayoutProperty(options) {
 
 };
 
-},{"../error/validation_error":43,"./validate":47}],58:[function(require,module,exports){
+},{"../error/validation_error":45,"./validate":49}],60:[function(require,module,exports){
 'use strict';
 
 var getType = require('../util/get_type');
@@ -17019,7 +17434,7 @@ module.exports = function validateNumber(options) {
     return [];
 };
 
-},{"../error/validation_error":43,"../util/get_type":45}],59:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47}],61:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -17072,7 +17487,7 @@ module.exports = function validateObject(options) {
     return errors;
 };
 
-},{"../error/validation_error":43,"../util/get_type":45,"./validate":47}],60:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47,"./validate":49}],62:[function(require,module,exports){
 'use strict';
 
 var validate = require('./validate');
@@ -17112,7 +17527,7 @@ module.exports = function validatePaintProperty(options) {
 
 };
 
-},{"../error/validation_error":43,"./validate":47}],61:[function(require,module,exports){
+},{"../error/validation_error":45,"./validate":49}],63:[function(require,module,exports){
 'use strict';
 
 var ValidationError = require('../error/validation_error');
@@ -17189,7 +17604,7 @@ module.exports = function validateSource(options) {
     }
 };
 
-},{"../error/validation_error":43,"../util/unbundle_jsonlint":46,"./validate_enum":52,"./validate_object":59}],62:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/unbundle_jsonlint":48,"./validate_enum":54,"./validate_object":61}],64:[function(require,module,exports){
 'use strict';
 
 var getType = require('../util/get_type');
@@ -17207,7 +17622,7 @@ module.exports = function validateString(options) {
     return [];
 };
 
-},{"../error/validation_error":43,"../util/get_type":45}],63:[function(require,module,exports){
+},{"../error/validation_error":45,"../util/get_type":47}],65:[function(require,module,exports){
 'use strict';
 
 var validateConstants = require('./validate/validate_constants');
@@ -17277,13 +17692,13 @@ function wrapCleanErrors(inner) {
 
 module.exports = validateStyleMin;
 
-},{"../reference/latest.min":65,"./validate/validate":47,"./validate/validate_constants":51,"./validate/validate_filter":53,"./validate/validate_glyphs_url":55,"./validate/validate_layer":56,"./validate/validate_layout_property":57,"./validate/validate_paint_property":60,"./validate/validate_source":61}],64:[function(require,module,exports){
+},{"../reference/latest.min":67,"./validate/validate":49,"./validate/validate_constants":53,"./validate/validate_filter":55,"./validate/validate_glyphs_url":57,"./validate/validate_layer":58,"./validate/validate_layout_property":59,"./validate/validate_paint_property":62,"./validate/validate_source":63}],66:[function(require,module,exports){
 module.exports = require('./v8.json');
 
-},{"./v8.json":66}],65:[function(require,module,exports){
+},{"./v8.json":68}],67:[function(require,module,exports){
 module.exports = require('./v8.min.json');
 
-},{"./v8.min.json":67}],66:[function(require,module,exports){
+},{"./v8.min.json":69}],68:[function(require,module,exports){
 module.exports={
   "$version": 8,
   "$root": {
@@ -18680,9 +19095,9 @@ module.exports={
   }
 }
 
-},{}],67:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 module.exports={"$version":8,"$root":{"version":{"required":true,"type":"enum","values":[8]},"name":{"type":"string"},"metadata":{"type":"*"},"center":{"type":"array","value":"number"},"zoom":{"type":"number"},"bearing":{"type":"number","default":0,"period":360,"units":"degrees"},"pitch":{"type":"number","default":0,"units":"degrees"},"sources":{"required":true,"type":"sources"},"sprite":{"type":"string"},"glyphs":{"type":"string"},"transition":{"type":"transition"},"layers":{"required":true,"type":"array","value":"layer"}},"sources":{"*":{"type":"source"}},"source":["source_tile","source_geojson","source_video","source_image"],"source_tile":{"type":{"required":true,"type":"enum","values":["vector","raster"]},"url":{"type":"string"},"tiles":{"type":"array","value":"string"},"minzoom":{"type":"number","default":0},"maxzoom":{"type":"number","default":22},"tileSize":{"type":"number","default":512,"units":"pixels"},"*":{"type":"*"}},"source_geojson":{"type":{"required":true,"type":"enum","values":["geojson"]},"data":{"type":"*"},"maxzoom":{"type":"number","default":14},"buffer":{"type":"number","default":64},"tolerance":{"type":"number","default":3},"cluster":{"type":"boolean","default":false},"clusterRadius":{"type":"number","default":400},"clusterMaxZoom":{"type":"number"}},"source_video":{"type":{"required":true,"type":"enum","values":["video"]},"urls":{"required":true,"type":"array","value":"string"},"coordinates":{"required":true,"type":"array","length":4,"value":{"type":"array","length":2,"value":"number"}}},"source_image":{"type":{"required":true,"type":"enum","values":["image"]},"url":{"required":true,"type":"string"},"coordinates":{"required":true,"type":"array","length":4,"value":{"type":"array","length":2,"value":"number"}}},"layer":{"id":{"type":"string","required":true},"type":{"type":"enum","values":["fill","line","symbol","circle","raster","background"]},"metadata":{"type":"*"},"ref":{"type":"string"},"source":{"type":"string"},"source-layer":{"type":"string"},"minzoom":{"type":"number","minimum":0,"maximum":22},"maxzoom":{"type":"number","minimum":0,"maximum":22},"interactive":{"type":"boolean","default":false},"filter":{"type":"filter"},"layout":{"type":"layout"},"paint":{"type":"paint"},"paint.*":{"type":"paint"}},"layout":["layout_fill","layout_line","layout_circle","layout_symbol","layout_raster","layout_background"],"layout_background":{"visibility":{"type":"enum","function":"piecewise-constant","values":["visible","none"],"default":"visible"}},"layout_fill":{"visibility":{"type":"enum","function":"piecewise-constant","values":["visible","none"],"default":"visible"}},"layout_circle":{"visibility":{"type":"enum","function":"piecewise-constant","values":["visible","none"],"default":"visible"}},"layout_line":{"line-cap":{"type":"enum","function":"piecewise-constant","values":["butt","round","square"],"default":"butt"},"line-join":{"type":"enum","function":"piecewise-constant","values":["bevel","round","miter"],"default":"miter"},"line-miter-limit":{"type":"number","default":2,"function":"interpolated","requires":[{"line-join":"miter"}]},"line-round-limit":{"type":"number","default":1.05,"function":"interpolated","requires":[{"line-join":"round"}]},"visibility":{"type":"enum","function":"piecewise-constant","values":["visible","none"],"default":"visible"}},"layout_symbol":{"symbol-placement":{"type":"enum","function":"piecewise-constant","values":["point","line"],"default":"point"},"symbol-spacing":{"type":"number","default":250,"minimum":1,"function":"interpolated","units":"pixels","requires":[{"symbol-placement":"line"}]},"symbol-avoid-edges":{"type":"boolean","function":"piecewise-constant","default":false},"icon-allow-overlap":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["icon-image"]},"icon-ignore-placement":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["icon-image"]},"icon-optional":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["icon-image","text-field"]},"icon-rotation-alignment":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"viewport","requires":["icon-image"]},"icon-size":{"type":"number","default":1,"minimum":0,"function":"interpolated","requires":["icon-image"]},"icon-image":{"type":"string","function":"piecewise-constant","tokens":true},"icon-rotate":{"type":"number","default":0,"period":360,"function":"interpolated","units":"degrees","requires":["icon-image"]},"icon-padding":{"type":"number","default":2,"minimum":0,"function":"interpolated","units":"pixels","requires":["icon-image"]},"icon-keep-upright":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["icon-image",{"icon-rotation-alignment":"map"},{"symbol-placement":"line"}]},"icon-offset":{"type":"array","value":"number","length":2,"default":[0,0],"function":"interpolated","requires":["icon-image"]},"text-rotation-alignment":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"viewport","requires":["text-field"]},"text-field":{"type":"string","function":"piecewise-constant","default":"","tokens":true},"text-font":{"type":"array","value":"string","function":"piecewise-constant","default":["Open Sans Regular","Arial Unicode MS Regular"],"requires":["text-field"]},"text-size":{"type":"number","default":16,"minimum":0,"units":"pixels","function":"interpolated","requires":["text-field"]},"text-max-width":{"type":"number","default":10,"minimum":0,"units":"em","function":"interpolated","requires":["text-field"]},"text-line-height":{"type":"number","default":1.2,"units":"em","function":"interpolated","requires":["text-field"]},"text-letter-spacing":{"type":"number","default":0,"units":"em","function":"interpolated","requires":["text-field"]},"text-justify":{"type":"enum","function":"piecewise-constant","values":["left","center","right"],"default":"center","requires":["text-field"]},"text-anchor":{"type":"enum","function":"piecewise-constant","values":["center","left","right","top","bottom","top-left","top-right","bottom-left","bottom-right"],"default":"center","requires":["text-field"]},"text-max-angle":{"type":"number","default":45,"units":"degrees","function":"interpolated","requires":["text-field",{"symbol-placement":"line"}]},"text-rotate":{"type":"number","default":0,"period":360,"units":"degrees","function":"interpolated","requires":["text-field"]},"text-padding":{"type":"number","default":2,"minimum":0,"units":"pixels","function":"interpolated","requires":["text-field"]},"text-keep-upright":{"type":"boolean","function":"piecewise-constant","default":true,"requires":["text-field",{"text-rotation-alignment":"map"},{"symbol-placement":"line"}]},"text-transform":{"type":"enum","function":"piecewise-constant","values":["none","uppercase","lowercase"],"default":"none","requires":["text-field"]},"text-offset":{"type":"array","value":"number","units":"ems","function":"interpolated","length":2,"default":[0,0],"requires":["text-field"]},"text-allow-overlap":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["text-field"]},"text-ignore-placement":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["text-field"]},"text-optional":{"type":"boolean","function":"piecewise-constant","default":false,"requires":["text-field","icon-image"]},"visibility":{"type":"enum","function":"piecewise-constant","values":["visible","none"],"default":"visible"}},"layout_raster":{"visibility":{"type":"enum","function":"piecewise-constant","values":["visible","none"],"default":"visible"}},"filter":{"type":"array","value":"*"},"filter_operator":{"type":"enum","values":["==","!=",">",">=","<","<=","in","!in","all","any","none"]},"geometry_type":{"type":"enum","values":["Point","LineString","Polygon"]},"color_operation":{"type":"enum","values":["lighten","saturate","spin","fade","mix"]},"function":{"stops":{"type":"array","required":true,"value":"function_stop"},"base":{"type":"number","default":1,"minimum":0},"property":{"type":"string","default":"$zoom"},"type":{"type":"enum","values":["exponential","interval","categorical"],"default":"exponential"}},"function_stop":{"type":"array","minimum":0,"maximum":22,"value":["number","color"],"length":2},"paint":["paint_fill","paint_line","paint_circle","paint_symbol","paint_raster","paint_background"],"paint_fill":{"fill-antialias":{"type":"boolean","function":"piecewise-constant","default":true},"fill-opacity":{"type":"number","function":"interpolated","default":1,"minimum":0,"maximum":1,"transition":true},"fill-color":{"type":"color","default":"#000000","function":"interpolated","transition":true,"requires":[{"!":"fill-pattern"}]},"fill-outline-color":{"type":"color","function":"interpolated","transition":true,"requires":[{"!":"fill-pattern"},{"fill-antialias":true}]},"fill-translate":{"type":"array","value":"number","length":2,"default":[0,0],"function":"interpolated","transition":true,"units":"pixels"},"fill-translate-anchor":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"map","requires":["fill-translate"]},"fill-pattern":{"type":"string","function":"piecewise-constant","transition":true}},"paint_line":{"line-opacity":{"type":"number","function":"interpolated","default":1,"minimum":0,"maximum":1,"transition":true},"line-color":{"type":"color","default":"#000000","function":"interpolated","transition":true,"requires":[{"!":"line-pattern"}]},"line-translate":{"type":"array","value":"number","length":2,"default":[0,0],"function":"interpolated","transition":true,"units":"pixels"},"line-translate-anchor":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"map","requires":["line-translate"]},"line-width":{"type":"number","default":1,"minimum":0,"function":"interpolated","transition":true,"units":"pixels"},"line-gap-width":{"type":"number","default":0,"minimum":0,"function":"interpolated","transition":true,"units":"pixels"},"line-offset":{"type":"number","default":0,"function":"interpolated","transition":true,"units":"pixels"},"line-blur":{"type":"number","default":0,"minimum":0,"function":"interpolated","transition":true,"units":"pixels"},"line-dasharray":{"type":"array","value":"number","function":"piecewise-constant","minimum":0,"transition":true,"units":"line widths","requires":[{"!":"line-pattern"}]},"line-pattern":{"type":"string","function":"piecewise-constant","transition":true}},"paint_circle":{"circle-radius":{"type":"number","default":5,"minimum":0,"function":"interpolated","transition":true,"units":"pixels"},"circle-color":{"type":"color","default":"#000000","function":"interpolated","transition":true},"circle-blur":{"type":"number","default":0,"function":"interpolated","transition":true},"circle-opacity":{"type":"number","default":1,"minimum":0,"maximum":1,"function":"interpolated","transition":true},"circle-translate":{"type":"array","value":"number","length":2,"default":[0,0],"function":"interpolated","transition":true,"units":"pixels"},"circle-translate-anchor":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"map","requires":["circle-translate"]}},"paint_symbol":{"icon-opacity":{"type":"number","default":1,"minimum":0,"maximum":1,"function":"interpolated","transition":true,"requires":["icon-image"]},"icon-color":{"type":"color","default":"#000000","function":"interpolated","transition":true,"requires":["icon-image"]},"icon-halo-color":{"type":"color","default":"rgba(0, 0, 0, 0)","function":"interpolated","transition":true,"requires":["icon-image"]},"icon-halo-width":{"type":"number","default":0,"minimum":0,"function":"interpolated","transition":true,"units":"pixels","requires":["icon-image"]},"icon-halo-blur":{"type":"number","default":0,"minimum":0,"function":"interpolated","transition":true,"units":"pixels","requires":["icon-image"]},"icon-translate":{"type":"array","value":"number","length":2,"default":[0,0],"function":"interpolated","transition":true,"units":"pixels","requires":["icon-image"]},"icon-translate-anchor":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"map","requires":["icon-image","icon-translate"]},"text-opacity":{"type":"number","default":1,"minimum":0,"maximum":1,"function":"interpolated","transition":true,"requires":["text-field"]},"text-color":{"type":"color","default":"#000000","function":"interpolated","transition":true,"requires":["text-field"]},"text-halo-color":{"type":"color","default":"rgba(0, 0, 0, 0)","function":"interpolated","transition":true,"requires":["text-field"]},"text-halo-width":{"type":"number","default":0,"minimum":0,"function":"interpolated","transition":true,"units":"pixels","requires":["text-field"]},"text-halo-blur":{"type":"number","default":0,"minimum":0,"function":"interpolated","transition":true,"units":"pixels","requires":["text-field"]},"text-translate":{"type":"array","value":"number","length":2,"default":[0,0],"function":"interpolated","transition":true,"units":"pixels","requires":["text-field"]},"text-translate-anchor":{"type":"enum","function":"piecewise-constant","values":["map","viewport"],"default":"map","requires":["text-field","text-translate"]}},"paint_raster":{"raster-opacity":{"type":"number","default":1,"minimum":0,"maximum":1,"function":"interpolated","transition":true},"raster-hue-rotate":{"type":"number","default":0,"period":360,"function":"interpolated","transition":true,"units":"degrees"},"raster-brightness-min":{"type":"number","function":"interpolated","default":0,"minimum":0,"maximum":1,"transition":true},"raster-brightness-max":{"type":"number","function":"interpolated","default":1,"minimum":0,"maximum":1,"transition":true},"raster-saturation":{"type":"number","default":0,"minimum":-1,"maximum":1,"function":"interpolated","transition":true},"raster-contrast":{"type":"number","default":0,"minimum":-1,"maximum":1,"function":"interpolated","transition":true},"raster-fade-duration":{"type":"number","default":300,"minimum":0,"function":"interpolated","transition":true,"units":"milliseconds"}},"paint_background":{"background-color":{"type":"color","default":"#000000","function":"interpolated","transition":true,"requires":[{"!":"background-pattern"}]},"background-pattern":{"type":"string","function":"piecewise-constant","transition":true},"background-opacity":{"type":"number","default":1,"minimum":0,"maximum":1,"function":"interpolated","transition":true}},"transition":{"duration":{"type":"number","default":300,"minimum":0,"units":"milliseconds"},"delay":{"type":"number","default":0,"minimum":0,"units":"milliseconds"}}}
-},{}],68:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 'use strict';
 
 var featureFilter = require('feature-filter');
@@ -19115,7 +19530,7 @@ function createGetUniform(attribute, stopOffset) {
     };
 }
 
-},{"../util/struct_array":167,"../util/util":169,"./bucket/circle_bucket":69,"./bucket/fill_bucket":70,"./bucket/line_bucket":71,"./bucket/symbol_bucket":72,"./buffer":73,"feature-filter":11}],69:[function(require,module,exports){
+},{"../util/struct_array":169,"../util/util":171,"./bucket/circle_bucket":71,"./bucket/fill_bucket":72,"./bucket/line_bucket":73,"./bucket/symbol_bucket":74,"./buffer":75,"feature-filter":13}],71:[function(require,module,exports){
 'use strict';
 
 var Bucket = require('../bucket');
@@ -19218,7 +19633,7 @@ CircleBucket.prototype.addFeature = function(feature) {
     this.addPaintAttributes('circle', globalProperties, feature.properties, startIndex, this.arrays.circleVertex.length);
 };
 
-},{"../../util/util":169,"../bucket":68,"../load_geometry":75}],70:[function(require,module,exports){
+},{"../../util/util":171,"../bucket":70,"../load_geometry":77}],72:[function(require,module,exports){
 'use strict';
 
 var Bucket = require('../bucket');
@@ -19301,7 +19716,7 @@ FillBucket.prototype.addFill = function(vertices) {
     }
 };
 
-},{"../../util/util":169,"../bucket":68,"../load_geometry":75}],71:[function(require,module,exports){
+},{"../../util/util":171,"../bucket":70,"../load_geometry":77}],73:[function(require,module,exports){
 'use strict';
 
 var Bucket = require('../bucket');
@@ -19735,7 +20150,7 @@ LineBucket.prototype.addPieSliceVertex = function(currentVertex, distance, extru
     }
 };
 
-},{"../../util/util":169,"../bucket":68,"../load_geometry":75}],72:[function(require,module,exports){
+},{"../../util/util":171,"../bucket":70,"../load_geometry":77}],74:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -20298,7 +20713,7 @@ function SymbolInstance(anchor, line, shapedText, shapedIcon, layout, addToBuffe
     }
 }
 
-},{"../../symbol/anchor":123,"../../symbol/clip_line":125,"../../symbol/collision_feature":127,"../../symbol/get_anchors":129,"../../symbol/mergelines":132,"../../symbol/quads":133,"../../symbol/resolve_text":134,"../../symbol/shaping":135,"../../util/token":168,"../../util/util":169,"../bucket":68,"../load_geometry":75,"point-geometry":176}],73:[function(require,module,exports){
+},{"../../symbol/anchor":125,"../../symbol/clip_line":127,"../../symbol/collision_feature":129,"../../symbol/get_anchors":131,"../../symbol/mergelines":134,"../../symbol/quads":135,"../../symbol/resolve_text":136,"../../symbol/shaping":137,"../../util/token":170,"../../util/util":171,"../bucket":70,"../load_geometry":77,"point-geometry":179}],75:[function(require,module,exports){
 'use strict';
 
 var assert = require('assert');
@@ -20417,7 +20832,7 @@ Buffer.ELEMENT_ATTRIBUTE_TYPE = 'Uint16';
  */
 Buffer.VERTEX_ATTRIBUTE_ALIGNMENT = 4;
 
-},{"assert":9}],74:[function(require,module,exports){
+},{"assert":10}],76:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -20718,7 +21133,7 @@ function offsetLine(rings, offset) {
     return newRings;
 }
 
-},{"../util/dictionary_coder":160,"../util/intersection_tests":164,"../util/struct_array":167,"../util/util":169,"../util/vectortile_to_geojson":170,"./bucket":68,"./load_geometry":75,"feature-filter":11,"grid-index":31,"pbf":175,"point-geometry":176,"vector-tile":185}],75:[function(require,module,exports){
+},{"../util/dictionary_coder":162,"../util/intersection_tests":166,"../util/struct_array":169,"../util/util":171,"../util/vectortile_to_geojson":172,"./bucket":70,"./load_geometry":77,"feature-filter":13,"grid-index":33,"pbf":178,"point-geometry":179,"vector-tile":198}],77:[function(require,module,exports){
 'use strict';
 
 var EXTENT = require('./bucket').EXTENT;
@@ -20757,7 +21172,7 @@ module.exports = function loadGeometry(feature) {
     return geometry;
 };
 
-},{"./bucket":68}],76:[function(require,module,exports){
+},{"./bucket":70}],78:[function(require,module,exports){
 'use strict';
 
 module.exports = Coordinate;
@@ -20836,7 +21251,7 @@ Coordinate.prototype = {
     }
 };
 
-},{}],77:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 'use strict';
 
 module.exports = LngLat;
@@ -20930,7 +21345,7 @@ LngLat.convert = function (input) {
     return input;
 };
 
-},{"../util/util":169}],78:[function(require,module,exports){
+},{"../util/util":171}],80:[function(require,module,exports){
 'use strict';
 
 module.exports = LngLatBounds;
@@ -21104,7 +21519,7 @@ LngLatBounds.convert = function (input) {
     return new LngLatBounds(input);
 };
 
-},{"./lng_lat":77}],79:[function(require,module,exports){
+},{"./lng_lat":79}],81:[function(require,module,exports){
 'use strict';
 
 var LngLat = require('./lng_lat'),
@@ -21547,7 +21962,7 @@ Transform.prototype = {
     }
 };
 
-},{"../data/bucket":68,"../source/tile_coord":101,"../util/interpolate":163,"../util/util":169,"./coordinate":76,"./lng_lat":77,"gl-matrix":21,"point-geometry":176}],80:[function(require,module,exports){
+},{"../data/bucket":70,"../source/tile_coord":103,"../util/interpolate":165,"../util/util":171,"./coordinate":78,"./lng_lat":79,"gl-matrix":23,"point-geometry":179}],82:[function(require,module,exports){
 'use strict';
 
 // Font data From Hershey Simplex Font
@@ -21680,7 +22095,7 @@ module.exports = function textVertices(text, left, baseline, scale) {
     return strokes;
 };
 
-},{}],81:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 'use strict';
 
 /**
@@ -21728,7 +22143,7 @@ Object.defineProperty(mapboxgl, 'accessToken', {
     set: function(token) { config.ACCESS_TOKEN = token; }
 });
 
-},{"./geo/lng_lat":77,"./geo/lng_lat_bounds":78,"./source/geojson_source":94,"./source/image_source":96,"./source/video_source":104,"./style/style":110,"./ui/control/attribution":138,"./ui/control/control":139,"./ui/control/geolocate":140,"./ui/control/navigation":141,"./ui/map":151,"./ui/popup":152,"./util/ajax":154,"./util/browser":155,"./util/config":159,"./util/evented":161,"./util/util":169,"point-geometry":176}],82:[function(require,module,exports){
+},{"./geo/lng_lat":79,"./geo/lng_lat_bounds":80,"./source/geojson_source":96,"./source/image_source":98,"./source/video_source":106,"./style/style":112,"./ui/control/attribution":140,"./ui/control/control":141,"./ui/control/geolocate":142,"./ui/control/navigation":143,"./ui/map":153,"./ui/popup":154,"./util/ajax":156,"./util/browser":157,"./util/config":161,"./util/evented":163,"./util/util":171,"point-geometry":179}],84:[function(require,module,exports){
 'use strict';
 
 var TilePyramid = require('../source/tile_pyramid');
@@ -21831,7 +22246,7 @@ function drawBackground(painter, source, layer) {
     gl.stencilFunc(gl.EQUAL, 0x80, 0x80);
 }
 
-},{"../source/pixels_to_tile_units":97,"../source/tile_pyramid":102,"../util/util":169}],83:[function(require,module,exports){
+},{"../source/pixels_to_tile_units":99,"../source/tile_pyramid":104,"../util/util":171}],85:[function(require,module,exports){
 'use strict';
 
 var browser = require('../util/browser');
@@ -21885,7 +22300,7 @@ function drawCircles(painter, source, layer, coords) {
     }
 }
 
-},{"../util/browser":155}],84:[function(require,module,exports){
+},{"../util/browser":157}],86:[function(require,module,exports){
 'use strict';
 
 module.exports = drawCollisionDebug;
@@ -21927,7 +22342,7 @@ function drawCollisionDebug(painter, source, layer, coords) {
     }
 }
 
-},{}],85:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 'use strict';
 
 var textVertices = require('../lib/debugtext');
@@ -21984,7 +22399,7 @@ function drawDebugTile(painter, source, coord) {
     gl.drawArrays(gl.LINES, 0, vertices.length / painter.debugTextBuffer.itemSize);
 }
 
-},{"../data/bucket":68,"../lib/debugtext":80,"../util/browser":155,"gl-matrix":21}],86:[function(require,module,exports){
+},{"../data/bucket":70,"../lib/debugtext":82,"../util/browser":157,"gl-matrix":23}],88:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -22235,7 +22650,7 @@ function setPattern(image, opacity, tile, coord, painter, program) {
     painter.spriteAtlas.bind(gl, true);
 }
 
-},{"../source/pixels_to_tile_units":97,"../util/util":169}],87:[function(require,module,exports){
+},{"../source/pixels_to_tile_units":99,"../util/util":171}],89:[function(require,module,exports){
 'use strict';
 
 var browser = require('../util/browser');
@@ -22414,7 +22829,7 @@ module.exports = function drawLine(painter, source, layer, coords) {
 
 };
 
-},{"../source/pixels_to_tile_units":97,"../util/browser":155,"../util/util":169,"gl-matrix":21}],88:[function(require,module,exports){
+},{"../source/pixels_to_tile_units":99,"../util/browser":157,"../util/util":171,"gl-matrix":23}],90:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -22551,7 +22966,7 @@ function getOpacities(tile, parentTile, layer, transform) {
     return opacity;
 }
 
-},{"../util/util":169}],89:[function(require,module,exports){
+},{"../util/util":171}],91:[function(require,module,exports){
 'use strict';
 
 var mat4 = require('gl-matrix').mat4;
@@ -22752,7 +23167,7 @@ function drawSymbol(painter, layer, posMatrix, tile, bucket, elementGroups, pref
     }
 }
 
-},{"../source/pixels_to_tile_units":97,"../util/browser":155,"../util/util":169,"./draw_collision_debug":84,"gl-matrix":21}],90:[function(require,module,exports){
+},{"../source/pixels_to_tile_units":99,"../util/browser":157,"../util/util":171,"./draw_collision_debug":86,"gl-matrix":23}],92:[function(require,module,exports){
 'use strict';
 
 module.exports = FrameHistory;
@@ -22824,7 +23239,7 @@ FrameHistory.prototype.bind = function(gl) {
     }
 };
 
-},{}],91:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 'use strict';
 
 module.exports = LineAtlas;
@@ -22969,7 +23384,7 @@ LineAtlas.prototype.bind = function(gl) {
     }
 };
 
-},{}],92:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 'use strict';
 
 var browser = require('../util/browser');
@@ -23347,7 +23762,7 @@ Painter.prototype.lineWidth = function(width) {
     this.gl.lineWidth(util.clamp(width, this.lineWidthRange[0], this.lineWidthRange[1]));
 };
 
-},{"../data/bucket":68,"../source/pixels_to_tile_units":97,"../source/tile_pyramid":102,"../util/browser":155,"../util/util":169,"./draw_background":82,"./draw_circle":83,"./draw_debug":85,"./draw_fill":86,"./draw_line":87,"./draw_raster":88,"./draw_symbol":89,"./frame_history":90,"./painter/use_program":93,"gl-matrix":21}],93:[function(require,module,exports){
+},{"../data/bucket":70,"../source/pixels_to_tile_units":99,"../source/tile_pyramid":104,"../util/browser":157,"../util/util":171,"./draw_background":84,"./draw_circle":85,"./draw_debug":87,"./draw_fill":88,"./draw_line":89,"./draw_raster":90,"./draw_symbol":91,"./frame_history":92,"./painter/use_program":95,"gl-matrix":23}],95:[function(require,module,exports){
 'use strict';
 
 
@@ -23499,7 +23914,7 @@ module.exports.useProgram = function (nextProgramName, macros) {
     return nextProgram;
 };
 
-},{"../../util/util":169,"assert":9,"path":173}],94:[function(require,module,exports){
+},{"../../util/util":171,"assert":10,"path":176}],96:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -23733,7 +24148,7 @@ GeoJSONSource.prototype = util.inherit(Evented, /** @lends GeoJSONSource.prototy
     }
 });
 
-},{"../data/bucket":68,"../util/evented":161,"../util/util":169,"./source":99,"./tile_pyramid":102,"resolve-url":178}],95:[function(require,module,exports){
+},{"../data/bucket":70,"../util/evented":163,"../util/util":171,"./source":101,"./tile_pyramid":104,"resolve-url":183}],97:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -23802,7 +24217,7 @@ FeatureWrapper.prototype.bbox = function() {
 
 FeatureWrapper.prototype.toGeoJSON = VectorTileFeature.prototype.toGeoJSON;
 
-},{"../data/bucket":68,"point-geometry":176,"vector-tile":185}],96:[function(require,module,exports){
+},{"../data/bucket":70,"point-geometry":179,"vector-tile":198}],98:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -23965,7 +24380,7 @@ ImageSource.prototype = util.inherit(Evented, /** @lends ImageSource.prototype *
     }
 });
 
-},{"../data/bucket":68,"../geo/lng_lat":77,"../util/ajax":154,"../util/evented":161,"../util/util":169,"./tile":100,"./tile_coord":101,"point-geometry":176}],97:[function(require,module,exports){
+},{"../data/bucket":70,"../geo/lng_lat":79,"../util/ajax":156,"../util/evented":163,"../util/util":171,"./tile":102,"./tile_coord":103,"point-geometry":179}],99:[function(require,module,exports){
 'use strict';
 
 var Bucket = require('../data/bucket');
@@ -23990,7 +24405,7 @@ module.exports = function(tile, pixelValue, z) {
 };
 
 
-},{"../data/bucket":68}],98:[function(require,module,exports){
+},{"../data/bucket":70}],100:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -24110,7 +24525,7 @@ RasterTileSource.prototype = util.inherit(Evented, {
     }
 });
 
-},{"../util/ajax":154,"../util/evented":161,"../util/mapbox":166,"../util/util":169,"./source":99}],99:[function(require,module,exports){
+},{"../util/ajax":156,"../util/evented":163,"../util/mapbox":168,"../util/util":171,"./source":101}],101:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -24305,7 +24720,7 @@ exports.is = function(source) {
     return false;
 };
 
-},{"../util/ajax":154,"../util/browser":155,"../util/mapbox":166,"../util/util":169,"./geojson_source":94,"./image_source":96,"./raster_tile_source":98,"./tile_coord":101,"./tile_pyramid":102,"./vector_tile_source":103,"./video_source":104}],100:[function(require,module,exports){
+},{"../util/ajax":156,"../util/browser":157,"../util/mapbox":168,"../util/util":171,"./geojson_source":96,"./image_source":98,"./raster_tile_source":100,"./tile_coord":103,"./tile_pyramid":104,"./vector_tile_source":105,"./video_source":106}],102:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -24482,7 +24897,7 @@ function unserializeBuckets(input, style) {
     return output;
 }
 
-},{"../data/bucket":68,"../data/feature_index":74,"../symbol/collision_box":126,"../symbol/collision_tile":128,"../util/util":169,"../util/vectortile_to_geojson":170,"feature-filter":11,"pbf":175,"vector-tile":185}],101:[function(require,module,exports){
+},{"../data/bucket":70,"../data/feature_index":76,"../symbol/collision_box":128,"../symbol/collision_tile":130,"../util/util":171,"../util/vectortile_to_geojson":172,"feature-filter":13,"pbf":178,"vector-tile":198}],103:[function(require,module,exports){
 'use strict';
 
 var assert = require('assert');
@@ -24661,7 +25076,7 @@ TileCoord.cover = function(z, bounds, actualZ) {
     });
 };
 
-},{"../geo/coordinate":76,"assert":9}],102:[function(require,module,exports){
+},{"../geo/coordinate":78,"assert":10}],104:[function(require,module,exports){
 'use strict';
 
 var Tile = require('./tile');
@@ -25126,7 +25541,7 @@ function compareKeyZoom(a, b) {
     return (a % 32) - (b % 32);
 }
 
-},{"../data/bucket":68,"../geo/coordinate":76,"../util/lru_cache":165,"../util/util":169,"./tile":100,"./tile_coord":101,"point-geometry":176}],103:[function(require,module,exports){
+},{"../data/bucket":70,"../geo/coordinate":78,"../util/lru_cache":167,"../util/util":171,"./tile":102,"./tile_coord":103,"point-geometry":179}],105:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -25254,7 +25669,7 @@ VectorTileSource.prototype = util.inherit(Evented, {
     }
 });
 
-},{"../util/evented":161,"../util/mapbox":166,"../util/util":169,"./source":99}],104:[function(require,module,exports){
+},{"../util/evented":163,"../util/mapbox":168,"../util/util":171,"./source":101}],106:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -25445,7 +25860,7 @@ VideoSource.prototype = util.inherit(Evented, /** @lends VideoSource.prototype *
     }
 });
 
-},{"../data/bucket":68,"../geo/lng_lat":77,"../util/ajax":154,"../util/evented":161,"../util/util":169,"./tile":100,"./tile_coord":101,"point-geometry":176}],105:[function(require,module,exports){
+},{"../data/bucket":70,"../geo/lng_lat":79,"../util/ajax":156,"../util/evented":163,"../util/util":171,"./tile":102,"./tile_coord":103,"point-geometry":179}],107:[function(require,module,exports){
 'use strict';
 
 var Actor = require('../util/actor');
@@ -25690,7 +26105,7 @@ function createLayerFamilies(layers) {
     return families;
 }
 
-},{"../style/style_layer":113,"../util/actor":153,"../util/ajax":154,"../util/util":169,"./geojson_wrapper":95,"./worker_tile":106,"geojson-rewind":13,"geojson-vt":16,"pbf":175,"supercluster":180,"vector-tile":185,"vt-pbf":189}],106:[function(require,module,exports){
+},{"../style/style_layer":115,"../util/actor":155,"../util/ajax":156,"../util/util":171,"./geojson_wrapper":97,"./worker_tile":108,"geojson-rewind":15,"geojson-vt":18,"pbf":178,"supercluster":189,"vector-tile":198,"vt-pbf":202}],108:[function(require,module,exports){
 'use strict';
 
 var FeatureIndex = require('../data/feature_index');
@@ -25961,7 +26376,7 @@ function getLayerId(layer) {
     return layer.id;
 }
 
-},{"../data/bucket":68,"../data/feature_index":74,"../symbol/collision_box":126,"../symbol/collision_tile":128,"../util/dictionary_coder":160}],107:[function(require,module,exports){
+},{"../data/bucket":70,"../data/feature_index":76,"../symbol/collision_box":128,"../symbol/collision_tile":130,"../util/dictionary_coder":162}],109:[function(require,module,exports){
 'use strict';
 
 module.exports = AnimationLoop;
@@ -25993,7 +26408,7 @@ AnimationLoop.prototype.cancel = function(n) {
     });
 };
 
-},{}],108:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 'use strict';
 
 var Evented = require('../util/evented');
@@ -26074,7 +26489,7 @@ ImageSprite.prototype.getSpritePosition = function(name) {
     return new SpritePosition();
 };
 
-},{"../util/ajax":154,"../util/browser":155,"../util/evented":161,"../util/mapbox":166}],109:[function(require,module,exports){
+},{"../util/ajax":156,"../util/browser":157,"../util/evented":163,"../util/mapbox":168}],111:[function(require,module,exports){
 'use strict';
 
 var parseCSSColor = require('csscolorparser').parseCSSColor;
@@ -26122,7 +26537,7 @@ function colorDowngrade(color) {
 
 module.exports = parseColor;
 
-},{"../util/util":169,"csscolorparser":10}],110:[function(require,module,exports){
+},{"../util/util":171,"csscolorparser":12}],112:[function(require,module,exports){
 'use strict';
 
 var Evented = require('../util/evented');
@@ -26861,7 +27276,7 @@ Style.prototype = util.inherit(Evented, {
     }
 });
 
-},{"../render/line_atlas":91,"../source/source":99,"../symbol/glyph_source":131,"../symbol/sprite_atlas":136,"../util/ajax":154,"../util/browser":155,"../util/dispatcher":157,"../util/evented":161,"../util/mapbox":166,"../util/util":169,"./animation_loop":107,"./image_sprite":108,"./style_function":112,"./style_layer":113,"./style_spec":120,"./validate_style":122}],111:[function(require,module,exports){
+},{"../render/line_atlas":93,"../source/source":101,"../symbol/glyph_source":133,"../symbol/sprite_atlas":138,"../util/ajax":156,"../util/browser":157,"../util/dispatcher":159,"../util/evented":163,"../util/mapbox":168,"../util/util":171,"./animation_loop":109,"./image_sprite":110,"./style_function":114,"./style_layer":115,"./style_spec":122,"./validate_style":124}],113:[function(require,module,exports){
 'use strict';
 
 var MapboxGLFunction = require('./style_function');
@@ -26940,7 +27355,7 @@ function transitioned(calculate) {
     };
 }
 
-},{"./parse_color":109,"./style_function":112}],112:[function(require,module,exports){
+},{"./parse_color":111,"./style_function":114}],114:[function(require,module,exports){
 'use strict';
 
 var MapboxGLFunction = require('mapbox-gl-function');
@@ -26967,7 +27382,7 @@ exports['piecewise-constant'] = function(parameters) {
 
 exports.isFunctionDefinition = MapboxGLFunction.isFunctionDefinition;
 
-},{"mapbox-gl-function":40}],113:[function(require,module,exports){
+},{"mapbox-gl-function":42}],115:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -27301,7 +27716,7 @@ function getDeclarationValue(declaration) {
     return declaration.value;
 }
 
-},{"../util/evented":161,"../util/util":169,"./parse_color":109,"./style_declaration":111,"./style_layer/background_style_layer":114,"./style_layer/circle_style_layer":115,"./style_layer/fill_style_layer":116,"./style_layer/line_style_layer":117,"./style_layer/raster_style_layer":118,"./style_layer/symbol_style_layer":119,"./style_spec":120,"./style_transition":121,"./validate_style":122}],114:[function(require,module,exports){
+},{"../util/evented":163,"../util/util":171,"./parse_color":111,"./style_declaration":113,"./style_layer/background_style_layer":116,"./style_layer/circle_style_layer":117,"./style_layer/fill_style_layer":118,"./style_layer/line_style_layer":119,"./style_layer/raster_style_layer":120,"./style_layer/symbol_style_layer":121,"./style_spec":122,"./style_transition":123,"./validate_style":124}],116:[function(require,module,exports){
 'use strict';
 
 var util = require('../../util/util');
@@ -27315,7 +27730,7 @@ module.exports = BackgroundStyleLayer;
 
 BackgroundStyleLayer.prototype = util.inherit(StyleLayer, {});
 
-},{"../../util/util":169,"../style_layer":113}],115:[function(require,module,exports){
+},{"../../util/util":171,"../style_layer":115}],117:[function(require,module,exports){
 'use strict';
 
 var util = require('../../util/util');
@@ -27329,7 +27744,7 @@ module.exports = CircleStyleLayer;
 
 CircleStyleLayer.prototype = util.inherit(StyleLayer, {});
 
-},{"../../util/util":169,"../style_layer":113}],116:[function(require,module,exports){
+},{"../../util/util":171,"../style_layer":115}],118:[function(require,module,exports){
 'use strict';
 
 var util = require('../../util/util');
@@ -27343,7 +27758,7 @@ module.exports = FillStyleLayer;
 
 FillStyleLayer.prototype = util.inherit(StyleLayer, {});
 
-},{"../../util/util":169,"../style_layer":113}],117:[function(require,module,exports){
+},{"../../util/util":171,"../style_layer":115}],119:[function(require,module,exports){
 'use strict';
 
 var util = require('../../util/util');
@@ -27377,7 +27792,7 @@ LineStyleLayer.prototype = util.inherit(StyleLayer, {
     }
 });
 
-},{"../../util/util":169,"../style_layer":113}],118:[function(require,module,exports){
+},{"../../util/util":171,"../style_layer":115}],120:[function(require,module,exports){
 'use strict';
 
 var util = require('../../util/util');
@@ -27391,7 +27806,7 @@ module.exports = RasterStyleLayer;
 
 RasterStyleLayer.prototype = util.inherit(StyleLayer, {});
 
-},{"../../util/util":169,"../style_layer":113}],119:[function(require,module,exports){
+},{"../../util/util":171,"../style_layer":115}],121:[function(require,module,exports){
 'use strict';
 
 var util = require('../../util/util');
@@ -27431,12 +27846,12 @@ SymbolStyleLayer.prototype = util.inherit(StyleLayer, {
 
 });
 
-},{"../../util/util":169,"../style_layer":113}],120:[function(require,module,exports){
+},{"../../util/util":171,"../style_layer":115}],122:[function(require,module,exports){
 'use strict';
 
 module.exports = require('mapbox-gl-style-spec/reference/latest');
 
-},{"mapbox-gl-style-spec/reference/latest":64}],121:[function(require,module,exports){
+},{"mapbox-gl-style-spec/reference/latest":66}],123:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -27516,7 +27931,7 @@ function interpZoomTransitioned(from, to, t) {
     };
 }
 
-},{"../util/interpolate":163,"../util/util":169}],122:[function(require,module,exports){
+},{"../util/interpolate":165,"../util/util":171}],124:[function(require,module,exports){
 'use strict';
 
 module.exports = require('mapbox-gl-style-spec/lib/validate_style.min');
@@ -27540,7 +27955,7 @@ module.exports.throwErrors = function throwErrors(emitter, errors) {
     }
 };
 
-},{"mapbox-gl-style-spec/lib/validate_style.min":63}],123:[function(require,module,exports){
+},{"mapbox-gl-style-spec/lib/validate_style.min":65}],125:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -27563,7 +27978,7 @@ Anchor.prototype.clone = function() {
     return new Anchor(this.x, this.y, this.angle, this.segment);
 };
 
-},{"point-geometry":176}],124:[function(require,module,exports){
+},{"point-geometry":179}],126:[function(require,module,exports){
 'use strict';
 
 module.exports = checkMaxAngle;
@@ -27643,7 +28058,7 @@ function checkMaxAngle(line, anchor, labelLength, windowSize, maxAngle) {
     return true;
 }
 
-},{}],125:[function(require,module,exports){
+},{}],127:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -27717,7 +28132,7 @@ function clipLine(lines, x1, y1, x2, y2) {
     return clippedLines;
 }
 
-},{"point-geometry":176}],126:[function(require,module,exports){
+},{"point-geometry":179}],128:[function(require,module,exports){
 'use strict';
 
 var StructArrayType = require('../util/struct_array');
@@ -27798,7 +28213,7 @@ util.extendAll(CollisionBoxArray.prototype.StructType.prototype, {
     }
 });
 
-},{"../util/struct_array":167,"../util/util":169,"point-geometry":176}],127:[function(require,module,exports){
+},{"../util/struct_array":169,"../util/util":171,"point-geometry":179}],129:[function(require,module,exports){
 'use strict';
 
 module.exports = CollisionFeature;
@@ -27932,7 +28347,7 @@ CollisionFeature.prototype._addLineCollisionBoxes = function(collisionBoxArray, 
     return bboxes;
 };
 
-},{}],128:[function(require,module,exports){
+},{}],130:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -28233,7 +28648,7 @@ CollisionTile.prototype.insertCollisionFeature = function(collisionFeature, minP
     }
 };
 
-},{"../data/bucket":68,"grid-index":31,"point-geometry":176}],129:[function(require,module,exports){
+},{"../data/bucket":70,"grid-index":33,"point-geometry":179}],131:[function(require,module,exports){
 'use strict';
 
 var interpolate = require('../util/interpolate');
@@ -28337,7 +28752,7 @@ function resample(line, offset, spacing, angleWindowSize, maxAngle, labelLength,
     return anchors;
 }
 
-},{"../symbol/anchor":123,"../util/interpolate":163,"./check_max_angle":124}],130:[function(require,module,exports){
+},{"../symbol/anchor":125,"../util/interpolate":165,"./check_max_angle":126}],132:[function(require,module,exports){
 'use strict';
 
 var ShelfPack = require('shelf-pack');
@@ -28505,7 +28920,7 @@ GlyphAtlas.prototype.updateTexture = function(gl) {
     }
 };
 
-},{"shelf-pack":179}],131:[function(require,module,exports){
+},{"shelf-pack":188}],133:[function(require,module,exports){
 'use strict';
 
 var normalizeURL = require('../util/mapbox').normalizeGlyphsURL;
@@ -28647,7 +29062,7 @@ function glyphUrl(fontstack, range, url, subdomains) {
         .replace('{range}', range);
 }
 
-},{"../symbol/glyph_atlas":130,"../util/ajax":154,"../util/glyphs":162,"../util/mapbox":166,"pbf":175}],132:[function(require,module,exports){
+},{"../symbol/glyph_atlas":132,"../util/ajax":156,"../util/glyphs":164,"../util/mapbox":168,"pbf":178}],134:[function(require,module,exports){
 'use strict';
 
 module.exports = function (features, textFeatures, geometries) {
@@ -28738,7 +29153,7 @@ module.exports = function (features, textFeatures, geometries) {
     };
 };
 
-},{}],133:[function(require,module,exports){
+},{}],135:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -28991,7 +29406,7 @@ function getSegmentGlyphs(glyphs, anchor, offset, line, segment, forward) {
     return placementScale;
 }
 
-},{"point-geometry":176}],134:[function(require,module,exports){
+},{"point-geometry":179}],136:[function(require,module,exports){
 'use strict';
 
 var resolveTokens = require('../util/token');
@@ -29034,7 +29449,7 @@ function resolveText(features, layoutProperties, codepoints) {
     return textFeatures;
 }
 
-},{"../util/token":168}],135:[function(require,module,exports){
+},{"../util/token":170}],137:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -29215,7 +29630,7 @@ function PositionedIcon(image, top, bottom, left, right) {
     this.right = right;
 }
 
-},{}],136:[function(require,module,exports){
+},{}],138:[function(require,module,exports){
 'use strict';
 
 var ShelfPack = require('shelf-pack');
@@ -29447,7 +29862,7 @@ function AtlasImage(rect, width, height, sdf, pixelRatio) {
     this.pixelRatio = pixelRatio;
 }
 
-},{"../util/browser":155,"shelf-pack":179}],137:[function(require,module,exports){
+},{"../util/browser":157,"shelf-pack":188}],139:[function(require,module,exports){
 'use strict';
 
 var util = require('../util/util');
@@ -30216,7 +30631,7 @@ util.extend(Camera.prototype, /** @lends Map.prototype */{
     }
 });
 
-},{"../geo/lng_lat":77,"../geo/lng_lat_bounds":78,"../util/browser":155,"../util/interpolate":163,"../util/util":169,"point-geometry":176}],138:[function(require,module,exports){
+},{"../geo/lng_lat":79,"../geo/lng_lat_bounds":80,"../util/browser":157,"../util/interpolate":165,"../util/util":171,"point-geometry":179}],140:[function(require,module,exports){
 'use strict';
 
 var Control = require('./control');
@@ -30297,7 +30712,7 @@ Attribution.prototype = util.inherit(Control, {
     }
 });
 
-},{"../../util/dom":158,"../../util/util":169,"./control":139}],139:[function(require,module,exports){
+},{"../../util/dom":160,"../../util/util":171,"./control":141}],141:[function(require,module,exports){
 'use strict';
 
 module.exports = Control;
@@ -30348,7 +30763,7 @@ Control.prototype = {
     }
 };
 
-},{}],140:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 'use strict';
 
 var Control = require('./control');
@@ -30425,7 +30840,7 @@ Geolocate.prototype = util.inherit(Control, {
 });
 
 
-},{"../../util/browser":155,"../../util/dom":158,"../../util/util":169,"./control":139}],141:[function(require,module,exports){
+},{"../../util/browser":157,"../../util/dom":160,"../../util/util":171,"./control":141}],143:[function(require,module,exports){
 'use strict';
 
 var Control = require('./control');
@@ -30543,7 +30958,7 @@ function copyMouseEvent(e) {
 }
 
 
-},{"../../util/dom":158,"../../util/util":169,"./control":139}],142:[function(require,module,exports){
+},{"../../util/dom":160,"../../util/util":171,"./control":141}],144:[function(require,module,exports){
 'use strict';
 
 var DOM = require('../../util/dom'),
@@ -30719,7 +31134,7 @@ BoxZoomHandler.prototype = {
  * @property {EventData} data Original event data
  */
 
-},{"../../geo/lng_lat_bounds":78,"../../util/dom":158,"../../util/util":169}],143:[function(require,module,exports){
+},{"../../geo/lng_lat_bounds":80,"../../util/dom":160,"../../util/util":171}],145:[function(require,module,exports){
 'use strict';
 
 module.exports = DoubleClickZoomHandler;
@@ -30774,7 +31189,7 @@ DoubleClickZoomHandler.prototype = {
     }
 };
 
-},{}],144:[function(require,module,exports){
+},{}],146:[function(require,module,exports){
 'use strict';
 
 var DOM = require('../../util/dom'),
@@ -31004,7 +31419,7 @@ DragPanHandler.prototype = {
  * @property {EventData} data Original event data
  */
 
-},{"../../util/dom":158,"../../util/util":169}],145:[function(require,module,exports){
+},{"../../util/dom":160,"../../util/util":171}],147:[function(require,module,exports){
 'use strict';
 
 var DOM = require('../../util/dom'),
@@ -31248,7 +31663,7 @@ DragRotateHandler.prototype = {
  * @property {EventData} data Original event data
  */
 
-},{"../../util/dom":158,"../../util/util":169,"point-geometry":176}],146:[function(require,module,exports){
+},{"../../util/dom":160,"../../util/util":171,"point-geometry":179}],148:[function(require,module,exports){
 'use strict';
 
 module.exports = KeyboardHandler;
@@ -31372,7 +31787,7 @@ KeyboardHandler.prototype = {
     }
 };
 
-},{}],147:[function(require,module,exports){
+},{}],149:[function(require,module,exports){
 'use strict';
 
 var DOM = require('../../util/dom'),
@@ -31550,7 +31965,7 @@ ScrollZoomHandler.prototype = {
  * @property {EventData} data Original event data, if fired interactively
  */
 
-},{"../../util/browser":155,"../../util/dom":158,"../../util/util":169}],148:[function(require,module,exports){
+},{"../../util/browser":157,"../../util/dom":160,"../../util/util":171}],150:[function(require,module,exports){
 'use strict';
 
 var DOM = require('../../util/dom'),
@@ -31759,7 +32174,7 @@ TouchZoomRotateHandler.prototype = {
     }
 };
 
-},{"../../util/dom":158,"../../util/util":169}],149:[function(require,module,exports){
+},{"../../util/dom":160,"../../util/util":171}],151:[function(require,module,exports){
 'use strict';
 
 /*
@@ -31831,7 +32246,7 @@ Hash.prototype = {
     }
 };
 
-},{"../util/util":169}],150:[function(require,module,exports){
+},{"../util/util":171}],152:[function(require,module,exports){
 'use strict';
 
 var handlers = {
@@ -32158,7 +32573,7 @@ Interaction.prototype = {
  * @property {EventData} data Original event data, if fired interactively
  */
 
-},{"../util/dom":158,"../util/util":169,"./handler/box_zoom":142,"./handler/dblclick_zoom":143,"./handler/drag_pan":144,"./handler/drag_rotate":145,"./handler/keyboard":146,"./handler/scroll_zoom":147,"./handler/touch_zoom_rotate":148,"point-geometry":176}],151:[function(require,module,exports){
+},{"../util/dom":160,"../util/util":171,"./handler/box_zoom":144,"./handler/dblclick_zoom":145,"./handler/drag_pan":146,"./handler/drag_rotate":147,"./handler/keyboard":148,"./handler/scroll_zoom":149,"./handler/touch_zoom_rotate":150,"point-geometry":179}],153:[function(require,module,exports){
 'use strict';
 
 var Canvas = require('../util/canvas');
@@ -33180,7 +33595,7 @@ function removeNode(node) {
     }
 }
 
-},{"../geo/lng_lat":77,"../geo/lng_lat_bounds":78,"../geo/transform":79,"../render/painter":92,"../style/animation_loop":107,"../style/style":110,"../util/browser":155,"../util/canvas":156,"../util/dom":158,"../util/evented":161,"../util/util":169,"./camera":137,"./control/attribution":138,"./hash":149,"./interaction":150,"point-geometry":176}],152:[function(require,module,exports){
+},{"../geo/lng_lat":79,"../geo/lng_lat_bounds":80,"../geo/transform":81,"../render/painter":94,"../style/animation_loop":109,"../style/style":112,"../util/browser":157,"../util/canvas":158,"../util/dom":160,"../util/evented":163,"../util/util":171,"./camera":139,"./control/attribution":140,"./hash":151,"./interaction":152,"point-geometry":179}],154:[function(require,module,exports){
 'use strict';
 
 module.exports = Popup;
@@ -33394,7 +33809,7 @@ Popup.prototype = util.inherit(Evented, /** @lends Popup.prototype */{
     }
 });
 
-},{"../geo/lng_lat":77,"../util/dom":158,"../util/evented":161,"../util/util":169}],153:[function(require,module,exports){
+},{"../geo/lng_lat":79,"../util/dom":160,"../util/evented":163,"../util/util":171}],155:[function(require,module,exports){
 'use strict';
 
 module.exports = Actor;
@@ -33459,7 +33874,7 @@ Actor.prototype.postMessage = function(message, transferList) {
     this.target.postMessage(message, transferList);
 };
 
-},{}],154:[function(require,module,exports){
+},{}],156:[function(require,module,exports){
 'use strict';
 
 exports.getJSON = function(url, callback) {
@@ -33549,7 +33964,7 @@ exports.getVideo = function(urls, callback) {
     return video;
 };
 
-},{}],155:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 'use strict';
 
 /**
@@ -33642,7 +34057,7 @@ webpImgTest.src = 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAQAAAAfQ//
 
 exports.supportsGeolocation = !!navigator.geolocation;
 
-},{"mapbox-gl-js-supported":41}],156:[function(require,module,exports){
+},{"mapbox-gl-js-supported":43}],158:[function(require,module,exports){
 'use strict';
 
 var util = require('../util');
@@ -33686,7 +34101,7 @@ Canvas.prototype.getElement = function() {
     return this.canvas;
 };
 
-},{"../util":169,"mapbox-gl-js-supported":41}],157:[function(require,module,exports){
+},{"../util":171,"mapbox-gl-js-supported":43}],159:[function(require,module,exports){
 'use strict';
 
 var Actor = require('../actor');
@@ -33730,7 +34145,7 @@ Dispatcher.prototype = {
     }
 };
 
-},{"../../source/worker":105,"../actor":153,"webworkify":192}],158:[function(require,module,exports){
+},{"../../source/worker":107,"../actor":155,"webworkify":205}],160:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -33805,7 +34220,7 @@ exports.touchPos = function (el, e) {
     return points;
 };
 
-},{"point-geometry":176}],159:[function(require,module,exports){
+},{"point-geometry":179}],161:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -33813,7 +34228,7 @@ module.exports = {
     REQUIRE_ACCESS_TOKEN: true
 };
 
-},{}],160:[function(require,module,exports){
+},{}],162:[function(require,module,exports){
 'use strict';
 
 var assert = require('assert');
@@ -33840,7 +34255,7 @@ DictionaryCoder.prototype.decode = function(n) {
     return this._numberToString[n];
 };
 
-},{"assert":9}],161:[function(require,module,exports){
+},{"assert":10}],163:[function(require,module,exports){
 'use strict';
 
 var util = require('./util');
@@ -33945,7 +34360,7 @@ var Evented = {
 
 module.exports = Evented;
 
-},{"./util":169}],162:[function(require,module,exports){
+},{"./util":171}],164:[function(require,module,exports){
 'use strict';
 
 module.exports = Glyphs;
@@ -33980,7 +34395,7 @@ function readGlyph(tag, glyph, pbf) {
     else if (tag === 7) glyph.advance = pbf.readVarint();
 }
 
-},{}],163:[function(require,module,exports){
+},{}],165:[function(require,module,exports){
 'use strict';
 
 module.exports = interpolate;
@@ -34021,7 +34436,7 @@ interpolate.array = function(from, to, t) {
     });
 };
 
-},{}],164:[function(require,module,exports){
+},{}],166:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -34187,7 +34602,7 @@ function polygonContainsPoint(ring, p) {
     return c;
 }
 
-},{}],165:[function(require,module,exports){
+},{}],167:[function(require,module,exports){
 'use strict';
 
 module.exports = LRUCache;
@@ -34312,7 +34727,7 @@ LRUCache.prototype.setMaxSize = function(max) {
     return this;
 };
 
-},{}],166:[function(require,module,exports){
+},{}],168:[function(require,module,exports){
 'use strict';
 
 var config = require('./config');
@@ -34393,7 +34808,7 @@ module.exports.normalizeTileURL = function(url, sourceUrl, tileSize) {
     return url.replace(/\.((?:png|jpg)\d*)(?=$|\?)/, browser.devicePixelRatio >= 2 || tileSize === 512 ? '@2x.' + extension : '.' + extension);
 };
 
-},{"./browser":155,"./config":159}],167:[function(require,module,exports){
+},{"./browser":157,"./config":161}],169:[function(require,module,exports){
 'use strict';
 
 // Note: all "sizes" are measured in bytes
@@ -34716,7 +35131,7 @@ StructArray.prototype._refreshViews = function() {
     }
 };
 
-},{"assert":9}],168:[function(require,module,exports){
+},{"assert":10}],170:[function(require,module,exports){
 'use strict';
 
 module.exports = resolveTokens;
@@ -34735,7 +35150,7 @@ function resolveTokens(properties, text) {
     });
 }
 
-},{}],169:[function(require,module,exports){
+},{}],171:[function(require,module,exports){
 'use strict';
 
 var UnitBezier = require('unitbezier');
@@ -35187,7 +35602,7 @@ exports.arraysIntersect = function(a, b) {
     return false;
 };
 
-},{"../geo/coordinate":76,"unitbezier":182}],170:[function(require,module,exports){
+},{"../geo/coordinate":78,"unitbezier":195}],172:[function(require,module,exports){
 'use strict';
 
 var VectorTileFeature = require('vector-tile').VectorTileFeature;
@@ -35273,7 +35688,89 @@ function projectCoords(coords, extent, z, x, y) {
     return coords;
 }
 
-},{"vector-tile":185}],171:[function(require,module,exports){
+},{"vector-tile":198}],173:[function(require,module,exports){
+'use strict'
+
+module.exports = monotoneConvexHull2D
+
+var orient = require('robust-orientation')[3]
+
+function monotoneConvexHull2D(points) {
+  var n = points.length
+
+  if(n < 3) {
+    var result = new Array(n)
+    for(var i=0; i<n; ++i) {
+      result[i] = i
+    }
+
+    if(n === 2 &&
+       points[0][0] === points[1][0] &&
+       points[0][1] === points[1][1]) {
+      return [0]
+    }
+
+    return result
+  }
+
+  //Sort point indices along x-axis
+  var sorted = new Array(n)
+  for(var i=0; i<n; ++i) {
+    sorted[i] = i
+  }
+  sorted.sort(function(a,b) {
+    var d = points[a][0]-points[b][0]
+    if(d) {
+      return d
+    }
+    return points[a][1] - points[b][1]
+  })
+
+  //Construct upper and lower hulls
+  var lower = [sorted[0], sorted[1]]
+  var upper = [sorted[0], sorted[1]]
+
+  for(var i=2; i<n; ++i) {
+    var idx = sorted[i]
+    var p   = points[idx]
+
+    //Insert into lower list
+    var m = lower.length
+    while(m > 1 && orient(
+        points[lower[m-2]], 
+        points[lower[m-1]], 
+        p) <= 0) {
+      m -= 1
+      lower.pop()
+    }
+    lower.push(idx)
+
+    //Insert into upper list
+    m = upper.length
+    while(m > 1 && orient(
+        points[upper[m-2]], 
+        points[upper[m-1]], 
+        p) >= 0) {
+      m -= 1
+      upper.pop()
+    }
+    upper.push(idx)
+  }
+
+  //Merge lists together
+  var result = new Array(upper.length + lower.length - 2)
+  var ptr    = 0
+  for(var i=0, nl=lower.length; i<nl; ++i) {
+    result[ptr++] = lower[i]
+  }
+  for(var j=upper.length-2; j>0; --j) {
+    result[ptr++] = upper[j]
+  }
+
+  //Return result
+  return result
+}
+},{"robust-orientation":184}],174:[function(require,module,exports){
 // Create a range object for efficently rendering strings to elements.
 var range;
 
@@ -35772,7 +36269,7 @@ function morphdom(fromNode, toNode, options) {
 
 module.exports = morphdom;
 
-},{}],172:[function(require,module,exports){
+},{}],175:[function(require,module,exports){
 /*!
  * numeral.js
  * version : 1.5.3
@@ -36453,7 +36950,7 @@ module.exports = morphdom;
     }
 }).call(this);
 
-},{}],173:[function(require,module,exports){
+},{}],176:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -36681,7 +37178,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":177}],174:[function(require,module,exports){
+},{"_process":181}],177:[function(require,module,exports){
 'use strict';
 
 // lightweight Buffer shim for pbf browser build
@@ -36842,7 +37339,7 @@ function encodeString(str) {
     return bytes;
 }
 
-},{"ieee754":32}],175:[function(require,module,exports){
+},{"ieee754":34}],178:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -37272,7 +37769,7 @@ function writePackedFixed64(arr, pbf)  { for (var i = 0; i < arr.length; i++) pb
 function writePackedSFixed64(arr, pbf) { for (var i = 0; i < arr.length; i++) pbf.writeSFixed64(arr[i]); }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./buffer":174}],176:[function(require,module,exports){
+},{"./buffer":177}],179:[function(require,module,exports){
 'use strict';
 
 module.exports = Point;
@@ -37405,7 +37902,27 @@ Point.convert = function (a) {
     return a;
 };
 
-},{}],177:[function(require,module,exports){
+},{}],180:[function(require,module,exports){
+module.exports = function (point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    
+    var x = point[0], y = point[1];
+    
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i][0], yi = vs[i][1];
+        var xj = vs[j][0], yj = vs[j][1];
+        
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    
+    return inside;
+};
+
+},{}],181:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -37498,7 +38015,630 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],178:[function(require,module,exports){
+},{}],182:[function(require,module,exports){
+/*
+ (c) 2015, Vladimir Agafonkin
+ RBush, a JavaScript library for high-performance 2D spatial indexing of points and rectangles.
+ https://github.com/mourner/rbush
+*/
+
+(function () {
+'use strict';
+
+function rbush(maxEntries, format) {
+
+    // jshint newcap: false, validthis: true
+    if (!(this instanceof rbush)) return new rbush(maxEntries, format);
+
+    // max entries in a node is 9 by default; min node fill is 40% for best performance
+    this._maxEntries = Math.max(4, maxEntries || 9);
+    this._minEntries = Math.max(2, Math.ceil(this._maxEntries * 0.4));
+
+    if (format) {
+        this._initFormat(format);
+    }
+
+    this.clear();
+}
+
+rbush.prototype = {
+
+    all: function () {
+        return this._all(this.data, []);
+    },
+
+    search: function (bbox) {
+
+        var node = this.data,
+            result = [],
+            toBBox = this.toBBox;
+
+        if (!intersects(bbox, node.bbox)) return result;
+
+        var nodesToSearch = [],
+            i, len, child, childBBox;
+
+        while (node) {
+            for (i = 0, len = node.children.length; i < len; i++) {
+
+                child = node.children[i];
+                childBBox = node.leaf ? toBBox(child) : child.bbox;
+
+                if (intersects(bbox, childBBox)) {
+                    if (node.leaf) result.push(child);
+                    else if (contains(bbox, childBBox)) this._all(child, result);
+                    else nodesToSearch.push(child);
+                }
+            }
+            node = nodesToSearch.pop();
+        }
+
+        return result;
+    },
+
+    collides: function (bbox) {
+
+        var node = this.data,
+            toBBox = this.toBBox;
+
+        if (!intersects(bbox, node.bbox)) return false;
+
+        var nodesToSearch = [],
+            i, len, child, childBBox;
+
+        while (node) {
+            for (i = 0, len = node.children.length; i < len; i++) {
+
+                child = node.children[i];
+                childBBox = node.leaf ? toBBox(child) : child.bbox;
+
+                if (intersects(bbox, childBBox)) {
+                    if (node.leaf || contains(bbox, childBBox)) return true;
+                    nodesToSearch.push(child);
+                }
+            }
+            node = nodesToSearch.pop();
+        }
+
+        return false;
+    },
+
+    load: function (data) {
+        if (!(data && data.length)) return this;
+
+        if (data.length < this._minEntries) {
+            for (var i = 0, len = data.length; i < len; i++) {
+                this.insert(data[i]);
+            }
+            return this;
+        }
+
+        // recursively build the tree with the given data from stratch using OMT algorithm
+        var node = this._build(data.slice(), 0, data.length - 1, 0);
+
+        if (!this.data.children.length) {
+            // save as is if tree is empty
+            this.data = node;
+
+        } else if (this.data.height === node.height) {
+            // split root if trees have the same height
+            this._splitRoot(this.data, node);
+
+        } else {
+            if (this.data.height < node.height) {
+                // swap trees if inserted one is bigger
+                var tmpNode = this.data;
+                this.data = node;
+                node = tmpNode;
+            }
+
+            // insert the small tree into the large tree at appropriate level
+            this._insert(node, this.data.height - node.height - 1, true);
+        }
+
+        return this;
+    },
+
+    insert: function (item) {
+        if (item) this._insert(item, this.data.height - 1);
+        return this;
+    },
+
+    clear: function () {
+        this.data = {
+            children: [],
+            height: 1,
+            bbox: empty(),
+            leaf: true
+        };
+        return this;
+    },
+
+    remove: function (item) {
+        if (!item) return this;
+
+        var node = this.data,
+            bbox = this.toBBox(item),
+            path = [],
+            indexes = [],
+            i, parent, index, goingUp;
+
+        // depth-first iterative tree traversal
+        while (node || path.length) {
+
+            if (!node) { // go up
+                node = path.pop();
+                parent = path[path.length - 1];
+                i = indexes.pop();
+                goingUp = true;
+            }
+
+            if (node.leaf) { // check current node
+                index = node.children.indexOf(item);
+
+                if (index !== -1) {
+                    // item found, remove the item and condense tree upwards
+                    node.children.splice(index, 1);
+                    path.push(node);
+                    this._condense(path);
+                    return this;
+                }
+            }
+
+            if (!goingUp && !node.leaf && contains(node.bbox, bbox)) { // go down
+                path.push(node);
+                indexes.push(i);
+                i = 0;
+                parent = node;
+                node = node.children[0];
+
+            } else if (parent) { // go right
+                i++;
+                node = parent.children[i];
+                goingUp = false;
+
+            } else node = null; // nothing found
+        }
+
+        return this;
+    },
+
+    toBBox: function (item) { return item; },
+
+    compareMinX: function (a, b) { return a[0] - b[0]; },
+    compareMinY: function (a, b) { return a[1] - b[1]; },
+
+    toJSON: function () { return this.data; },
+
+    fromJSON: function (data) {
+        this.data = data;
+        return this;
+    },
+
+    _all: function (node, result) {
+        var nodesToSearch = [];
+        while (node) {
+            if (node.leaf) result.push.apply(result, node.children);
+            else nodesToSearch.push.apply(nodesToSearch, node.children);
+
+            node = nodesToSearch.pop();
+        }
+        return result;
+    },
+
+    _build: function (items, left, right, height) {
+
+        var N = right - left + 1,
+            M = this._maxEntries,
+            node;
+
+        if (N <= M) {
+            // reached leaf level; return leaf
+            node = {
+                children: items.slice(left, right + 1),
+                height: 1,
+                bbox: null,
+                leaf: true
+            };
+            calcBBox(node, this.toBBox);
+            return node;
+        }
+
+        if (!height) {
+            // target height of the bulk-loaded tree
+            height = Math.ceil(Math.log(N) / Math.log(M));
+
+            // target number of root entries to maximize storage utilization
+            M = Math.ceil(N / Math.pow(M, height - 1));
+        }
+
+        node = {
+            children: [],
+            height: height,
+            bbox: null,
+            leaf: false
+        };
+
+        // split the items into M mostly square tiles
+
+        var N2 = Math.ceil(N / M),
+            N1 = N2 * Math.ceil(Math.sqrt(M)),
+            i, j, right2, right3;
+
+        multiSelect(items, left, right, N1, this.compareMinX);
+
+        for (i = left; i <= right; i += N1) {
+
+            right2 = Math.min(i + N1 - 1, right);
+
+            multiSelect(items, i, right2, N2, this.compareMinY);
+
+            for (j = i; j <= right2; j += N2) {
+
+                right3 = Math.min(j + N2 - 1, right2);
+
+                // pack each entry recursively
+                node.children.push(this._build(items, j, right3, height - 1));
+            }
+        }
+
+        calcBBox(node, this.toBBox);
+
+        return node;
+    },
+
+    _chooseSubtree: function (bbox, node, level, path) {
+
+        var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
+
+        while (true) {
+            path.push(node);
+
+            if (node.leaf || path.length - 1 === level) break;
+
+            minArea = minEnlargement = Infinity;
+
+            for (i = 0, len = node.children.length; i < len; i++) {
+                child = node.children[i];
+                area = bboxArea(child.bbox);
+                enlargement = enlargedArea(bbox, child.bbox) - area;
+
+                // choose entry with the least area enlargement
+                if (enlargement < minEnlargement) {
+                    minEnlargement = enlargement;
+                    minArea = area < minArea ? area : minArea;
+                    targetNode = child;
+
+                } else if (enlargement === minEnlargement) {
+                    // otherwise choose one with the smallest area
+                    if (area < minArea) {
+                        minArea = area;
+                        targetNode = child;
+                    }
+                }
+            }
+
+            node = targetNode;
+        }
+
+        return node;
+    },
+
+    _insert: function (item, level, isNode) {
+
+        var toBBox = this.toBBox,
+            bbox = isNode ? item.bbox : toBBox(item),
+            insertPath = [];
+
+        // find the best node for accommodating the item, saving all nodes along the path too
+        var node = this._chooseSubtree(bbox, this.data, level, insertPath);
+
+        // put the item into the node
+        node.children.push(item);
+        extend(node.bbox, bbox);
+
+        // split on node overflow; propagate upwards if necessary
+        while (level >= 0) {
+            if (insertPath[level].children.length > this._maxEntries) {
+                this._split(insertPath, level);
+                level--;
+            } else break;
+        }
+
+        // adjust bboxes along the insertion path
+        this._adjustParentBBoxes(bbox, insertPath, level);
+    },
+
+    // split overflowed node into two
+    _split: function (insertPath, level) {
+
+        var node = insertPath[level],
+            M = node.children.length,
+            m = this._minEntries;
+
+        this._chooseSplitAxis(node, m, M);
+
+        var splitIndex = this._chooseSplitIndex(node, m, M);
+
+        var newNode = {
+            children: node.children.splice(splitIndex, node.children.length - splitIndex),
+            height: node.height,
+            bbox: null,
+            leaf: false
+        };
+
+        if (node.leaf) newNode.leaf = true;
+
+        calcBBox(node, this.toBBox);
+        calcBBox(newNode, this.toBBox);
+
+        if (level) insertPath[level - 1].children.push(newNode);
+        else this._splitRoot(node, newNode);
+    },
+
+    _splitRoot: function (node, newNode) {
+        // split root node
+        this.data = {
+            children: [node, newNode],
+            height: node.height + 1,
+            bbox: null,
+            leaf: false
+        };
+        calcBBox(this.data, this.toBBox);
+    },
+
+    _chooseSplitIndex: function (node, m, M) {
+
+        var i, bbox1, bbox2, overlap, area, minOverlap, minArea, index;
+
+        minOverlap = minArea = Infinity;
+
+        for (i = m; i <= M - m; i++) {
+            bbox1 = distBBox(node, 0, i, this.toBBox);
+            bbox2 = distBBox(node, i, M, this.toBBox);
+
+            overlap = intersectionArea(bbox1, bbox2);
+            area = bboxArea(bbox1) + bboxArea(bbox2);
+
+            // choose distribution with minimum overlap
+            if (overlap < minOverlap) {
+                minOverlap = overlap;
+                index = i;
+
+                minArea = area < minArea ? area : minArea;
+
+            } else if (overlap === minOverlap) {
+                // otherwise choose distribution with minimum area
+                if (area < minArea) {
+                    minArea = area;
+                    index = i;
+                }
+            }
+        }
+
+        return index;
+    },
+
+    // sorts node children by the best axis for split
+    _chooseSplitAxis: function (node, m, M) {
+
+        var compareMinX = node.leaf ? this.compareMinX : compareNodeMinX,
+            compareMinY = node.leaf ? this.compareMinY : compareNodeMinY,
+            xMargin = this._allDistMargin(node, m, M, compareMinX),
+            yMargin = this._allDistMargin(node, m, M, compareMinY);
+
+        // if total distributions margin value is minimal for x, sort by minX,
+        // otherwise it's already sorted by minY
+        if (xMargin < yMargin) node.children.sort(compareMinX);
+    },
+
+    // total margin of all possible split distributions where each node is at least m full
+    _allDistMargin: function (node, m, M, compare) {
+
+        node.children.sort(compare);
+
+        var toBBox = this.toBBox,
+            leftBBox = distBBox(node, 0, m, toBBox),
+            rightBBox = distBBox(node, M - m, M, toBBox),
+            margin = bboxMargin(leftBBox) + bboxMargin(rightBBox),
+            i, child;
+
+        for (i = m; i < M - m; i++) {
+            child = node.children[i];
+            extend(leftBBox, node.leaf ? toBBox(child) : child.bbox);
+            margin += bboxMargin(leftBBox);
+        }
+
+        for (i = M - m - 1; i >= m; i--) {
+            child = node.children[i];
+            extend(rightBBox, node.leaf ? toBBox(child) : child.bbox);
+            margin += bboxMargin(rightBBox);
+        }
+
+        return margin;
+    },
+
+    _adjustParentBBoxes: function (bbox, path, level) {
+        // adjust bboxes along the given tree path
+        for (var i = level; i >= 0; i--) {
+            extend(path[i].bbox, bbox);
+        }
+    },
+
+    _condense: function (path) {
+        // go through the path, removing empty nodes and updating bboxes
+        for (var i = path.length - 1, siblings; i >= 0; i--) {
+            if (path[i].children.length === 0) {
+                if (i > 0) {
+                    siblings = path[i - 1].children;
+                    siblings.splice(siblings.indexOf(path[i]), 1);
+
+                } else this.clear();
+
+            } else calcBBox(path[i], this.toBBox);
+        }
+    },
+
+    _initFormat: function (format) {
+        // data format (minX, minY, maxX, maxY accessors)
+
+        // uses eval-type function compilation instead of just accepting a toBBox function
+        // because the algorithms are very sensitive to sorting functions performance,
+        // so they should be dead simple and without inner calls
+
+        // jshint evil: true
+
+        var compareArr = ['return a', ' - b', ';'];
+
+        this.compareMinX = new Function('a', 'b', compareArr.join(format[0]));
+        this.compareMinY = new Function('a', 'b', compareArr.join(format[1]));
+
+        this.toBBox = new Function('a', 'return [a' + format.join(', a') + '];');
+    }
+};
+
+
+// calculate node's bbox from bboxes of its children
+function calcBBox(node, toBBox) {
+    node.bbox = distBBox(node, 0, node.children.length, toBBox);
+}
+
+// min bounding rectangle of node children from k to p-1
+function distBBox(node, k, p, toBBox) {
+    var bbox = empty();
+
+    for (var i = k, child; i < p; i++) {
+        child = node.children[i];
+        extend(bbox, node.leaf ? toBBox(child) : child.bbox);
+    }
+
+    return bbox;
+}
+
+function empty() { return [Infinity, Infinity, -Infinity, -Infinity]; }
+
+function extend(a, b) {
+    a[0] = Math.min(a[0], b[0]);
+    a[1] = Math.min(a[1], b[1]);
+    a[2] = Math.max(a[2], b[2]);
+    a[3] = Math.max(a[3], b[3]);
+    return a;
+}
+
+function compareNodeMinX(a, b) { return a.bbox[0] - b.bbox[0]; }
+function compareNodeMinY(a, b) { return a.bbox[1] - b.bbox[1]; }
+
+function bboxArea(a)   { return (a[2] - a[0]) * (a[3] - a[1]); }
+function bboxMargin(a) { return (a[2] - a[0]) + (a[3] - a[1]); }
+
+function enlargedArea(a, b) {
+    return (Math.max(b[2], a[2]) - Math.min(b[0], a[0])) *
+           (Math.max(b[3], a[3]) - Math.min(b[1], a[1]));
+}
+
+function intersectionArea(a, b) {
+    var minX = Math.max(a[0], b[0]),
+        minY = Math.max(a[1], b[1]),
+        maxX = Math.min(a[2], b[2]),
+        maxY = Math.min(a[3], b[3]);
+
+    return Math.max(0, maxX - minX) *
+           Math.max(0, maxY - minY);
+}
+
+function contains(a, b) {
+    return a[0] <= b[0] &&
+           a[1] <= b[1] &&
+           b[2] <= a[2] &&
+           b[3] <= a[3];
+}
+
+function intersects(a, b) {
+    return b[0] <= a[2] &&
+           b[1] <= a[3] &&
+           b[2] >= a[0] &&
+           b[3] >= a[1];
+}
+
+// sort an array so that items come in groups of n unsorted items, with groups sorted between each other;
+// combines selection algorithm with binary divide & conquer approach
+
+function multiSelect(arr, left, right, n, compare) {
+    var stack = [left, right],
+        mid;
+
+    while (stack.length) {
+        right = stack.pop();
+        left = stack.pop();
+
+        if (right - left <= n) continue;
+
+        mid = left + Math.ceil((right - left) / n / 2) * n;
+        select(arr, left, right, mid, compare);
+
+        stack.push(left, mid, mid, right);
+    }
+}
+
+// Floyd-Rivest selection algorithm:
+// sort an array between left and right (inclusive) so that the smallest k elements come first (unordered)
+function select(arr, left, right, k, compare) {
+    var n, i, z, s, sd, newLeft, newRight, t, j;
+
+    while (right > left) {
+        if (right - left > 600) {
+            n = right - left + 1;
+            i = k - left + 1;
+            z = Math.log(n);
+            s = 0.5 * Math.exp(2 * z / 3);
+            sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (i - n / 2 < 0 ? -1 : 1);
+            newLeft = Math.max(left, Math.floor(k - i * s / n + sd));
+            newRight = Math.min(right, Math.floor(k + (n - i) * s / n + sd));
+            select(arr, newLeft, newRight, k, compare);
+        }
+
+        t = arr[k];
+        i = left;
+        j = right;
+
+        swap(arr, left, k);
+        if (compare(arr[right], t) > 0) swap(arr, left, right);
+
+        while (i < j) {
+            swap(arr, i, j);
+            i++;
+            j--;
+            while (compare(arr[i], t) < 0) i++;
+            while (compare(arr[j], t) > 0) j--;
+        }
+
+        if (compare(arr[left], t) === 0) swap(arr, left, j);
+        else {
+            j++;
+            swap(arr, j, right);
+        }
+
+        if (j <= k) left = j + 1;
+        if (k <= j) right = j - 1;
+    }
+}
+
+function swap(arr, i, j) {
+    var tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+}
+
+
+// export as AMD/CommonJS module or global variable
+if (typeof define === 'function' && define.amd) define('rbush', function () { return rbush; });
+else if (typeof module !== 'undefined') module.exports = rbush;
+else if (typeof self !== 'undefined') self.rbush = rbush;
+else window.rbush = rbush;
+
+})();
+
+},{}],183:[function(require,module,exports){
 // Copyright 2014 Simon Lydell
 // X11 (“MIT”) Licensed. (See LICENSE.)
 
@@ -37547,7 +38687,563 @@ void (function(root, factory) {
 
 }));
 
-},{}],179:[function(require,module,exports){
+},{}],184:[function(require,module,exports){
+"use strict"
+
+var twoProduct = require("two-product")
+var robustSum = require("robust-sum")
+var robustScale = require("robust-scale")
+var robustSubtract = require("robust-subtract")
+
+var NUM_EXPAND = 5
+
+var EPSILON     = 1.1102230246251565e-16
+var ERRBOUND3   = (3.0 + 16.0 * EPSILON) * EPSILON
+var ERRBOUND4   = (7.0 + 56.0 * EPSILON) * EPSILON
+
+function cofactor(m, c) {
+  var result = new Array(m.length-1)
+  for(var i=1; i<m.length; ++i) {
+    var r = result[i-1] = new Array(m.length-1)
+    for(var j=0,k=0; j<m.length; ++j) {
+      if(j === c) {
+        continue
+      }
+      r[k++] = m[i][j]
+    }
+  }
+  return result
+}
+
+function matrix(n) {
+  var result = new Array(n)
+  for(var i=0; i<n; ++i) {
+    result[i] = new Array(n)
+    for(var j=0; j<n; ++j) {
+      result[i][j] = ["m", j, "[", (n-i-1), "]"].join("")
+    }
+  }
+  return result
+}
+
+function sign(n) {
+  if(n & 1) {
+    return "-"
+  }
+  return ""
+}
+
+function generateSum(expr) {
+  if(expr.length === 1) {
+    return expr[0]
+  } else if(expr.length === 2) {
+    return ["sum(", expr[0], ",", expr[1], ")"].join("")
+  } else {
+    var m = expr.length>>1
+    return ["sum(", generateSum(expr.slice(0, m)), ",", generateSum(expr.slice(m)), ")"].join("")
+  }
+}
+
+function determinant(m) {
+  if(m.length === 2) {
+    return [["sum(prod(", m[0][0], ",", m[1][1], "),prod(-", m[0][1], ",", m[1][0], "))"].join("")]
+  } else {
+    var expr = []
+    for(var i=0; i<m.length; ++i) {
+      expr.push(["scale(", generateSum(determinant(cofactor(m, i))), ",", sign(i), m[0][i], ")"].join(""))
+    }
+    return expr
+  }
+}
+
+function orientation(n) {
+  var pos = []
+  var neg = []
+  var m = matrix(n)
+  var args = []
+  for(var i=0; i<n; ++i) {
+    if((i&1)===0) {
+      pos.push.apply(pos, determinant(cofactor(m, i)))
+    } else {
+      neg.push.apply(neg, determinant(cofactor(m, i)))
+    }
+    args.push("m" + i)
+  }
+  var posExpr = generateSum(pos)
+  var negExpr = generateSum(neg)
+  var funcName = "orientation" + n + "Exact"
+  var code = ["function ", funcName, "(", args.join(), "){var p=", posExpr, ",n=", negExpr, ",d=sub(p,n);\
+return d[d.length-1];};return ", funcName].join("")
+  var proc = new Function("sum", "prod", "scale", "sub", code)
+  return proc(robustSum, twoProduct, robustScale, robustSubtract)
+}
+
+var orientation3Exact = orientation(3)
+var orientation4Exact = orientation(4)
+
+var CACHED = [
+  function orientation0() { return 0 },
+  function orientation1() { return 0 },
+  function orientation2(a, b) { 
+    return b[0] - a[0]
+  },
+  function orientation3(a, b, c) {
+    var l = (a[1] - c[1]) * (b[0] - c[0])
+    var r = (a[0] - c[0]) * (b[1] - c[1])
+    var det = l - r
+    var s
+    if(l > 0) {
+      if(r <= 0) {
+        return det
+      } else {
+        s = l + r
+      }
+    } else if(l < 0) {
+      if(r >= 0) {
+        return det
+      } else {
+        s = -(l + r)
+      }
+    } else {
+      return det
+    }
+    var tol = ERRBOUND3 * s
+    if(det >= tol || det <= -tol) {
+      return det
+    }
+    return orientation3Exact(a, b, c)
+  },
+  function orientation4(a,b,c,d) {
+    var adx = a[0] - d[0]
+    var bdx = b[0] - d[0]
+    var cdx = c[0] - d[0]
+    var ady = a[1] - d[1]
+    var bdy = b[1] - d[1]
+    var cdy = c[1] - d[1]
+    var adz = a[2] - d[2]
+    var bdz = b[2] - d[2]
+    var cdz = c[2] - d[2]
+    var bdxcdy = bdx * cdy
+    var cdxbdy = cdx * bdy
+    var cdxady = cdx * ady
+    var adxcdy = adx * cdy
+    var adxbdy = adx * bdy
+    var bdxady = bdx * ady
+    var det = adz * (bdxcdy - cdxbdy) 
+            + bdz * (cdxady - adxcdy)
+            + cdz * (adxbdy - bdxady)
+    var permanent = (Math.abs(bdxcdy) + Math.abs(cdxbdy)) * Math.abs(adz)
+                  + (Math.abs(cdxady) + Math.abs(adxcdy)) * Math.abs(bdz)
+                  + (Math.abs(adxbdy) + Math.abs(bdxady)) * Math.abs(cdz)
+    var tol = ERRBOUND4 * permanent
+    if ((det > tol) || (-det > tol)) {
+      return det
+    }
+    return orientation4Exact(a,b,c,d)
+  }
+]
+
+function slowOrient(args) {
+  var proc = CACHED[args.length]
+  if(!proc) {
+    proc = CACHED[args.length] = orientation(args.length)
+  }
+  return proc.apply(undefined, args)
+}
+
+function generateOrientationProc() {
+  while(CACHED.length <= NUM_EXPAND) {
+    CACHED.push(orientation(CACHED.length))
+  }
+  var args = []
+  var procArgs = ["slow"]
+  for(var i=0; i<=NUM_EXPAND; ++i) {
+    args.push("a" + i)
+    procArgs.push("o" + i)
+  }
+  var code = [
+    "function getOrientation(", args.join(), "){switch(arguments.length){case 0:case 1:return 0;"
+  ]
+  for(var i=2; i<=NUM_EXPAND; ++i) {
+    code.push("case ", i, ":return o", i, "(", args.slice(0, i).join(), ");")
+  }
+  code.push("}var s=new Array(arguments.length);for(var i=0;i<arguments.length;++i){s[i]=arguments[i]};return slow(s);}return getOrientation")
+  procArgs.push(code.join(""))
+
+  var proc = Function.apply(undefined, procArgs)
+  module.exports = proc.apply(undefined, [slowOrient].concat(CACHED))
+  for(var i=0; i<=NUM_EXPAND; ++i) {
+    module.exports[i] = CACHED[i]
+  }
+}
+
+generateOrientationProc()
+},{"robust-scale":185,"robust-subtract":186,"robust-sum":187,"two-product":193}],185:[function(require,module,exports){
+"use strict"
+
+var twoProduct = require("two-product")
+var twoSum = require("two-sum")
+
+module.exports = scaleLinearExpansion
+
+function scaleLinearExpansion(e, scale) {
+  var n = e.length
+  if(n === 1) {
+    var ts = twoProduct(e[0], scale)
+    if(ts[0]) {
+      return ts
+    }
+    return [ ts[1] ]
+  }
+  var g = new Array(2 * n)
+  var q = [0.1, 0.1]
+  var t = [0.1, 0.1]
+  var count = 0
+  twoProduct(e[0], scale, q)
+  if(q[0]) {
+    g[count++] = q[0]
+  }
+  for(var i=1; i<n; ++i) {
+    twoProduct(e[i], scale, t)
+    var pq = q[1]
+    twoSum(pq, t[0], q)
+    if(q[0]) {
+      g[count++] = q[0]
+    }
+    var a = t[1]
+    var b = q[1]
+    var x = a + b
+    var bv = x - a
+    var y = b - bv
+    q[1] = x
+    if(y) {
+      g[count++] = y
+    }
+  }
+  if(q[1]) {
+    g[count++] = q[1]
+  }
+  if(count === 0) {
+    g[count++] = 0.0
+  }
+  g.length = count
+  return g
+}
+},{"two-product":193,"two-sum":194}],186:[function(require,module,exports){
+"use strict"
+
+module.exports = robustSubtract
+
+//Easy case: Add two scalars
+function scalarScalar(a, b) {
+  var x = a + b
+  var bv = x - a
+  var av = x - bv
+  var br = b - bv
+  var ar = a - av
+  var y = ar + br
+  if(y) {
+    return [y, x]
+  }
+  return [x]
+}
+
+function robustSubtract(e, f) {
+  var ne = e.length|0
+  var nf = f.length|0
+  if(ne === 1 && nf === 1) {
+    return scalarScalar(e[0], -f[0])
+  }
+  var n = ne + nf
+  var g = new Array(n)
+  var count = 0
+  var eptr = 0
+  var fptr = 0
+  var abs = Math.abs
+  var ei = e[eptr]
+  var ea = abs(ei)
+  var fi = -f[fptr]
+  var fa = abs(fi)
+  var a, b
+  if(ea < fa) {
+    b = ei
+    eptr += 1
+    if(eptr < ne) {
+      ei = e[eptr]
+      ea = abs(ei)
+    }
+  } else {
+    b = fi
+    fptr += 1
+    if(fptr < nf) {
+      fi = -f[fptr]
+      fa = abs(fi)
+    }
+  }
+  if((eptr < ne && ea < fa) || (fptr >= nf)) {
+    a = ei
+    eptr += 1
+    if(eptr < ne) {
+      ei = e[eptr]
+      ea = abs(ei)
+    }
+  } else {
+    a = fi
+    fptr += 1
+    if(fptr < nf) {
+      fi = -f[fptr]
+      fa = abs(fi)
+    }
+  }
+  var x = a + b
+  var bv = x - a
+  var y = b - bv
+  var q0 = y
+  var q1 = x
+  var _x, _bv, _av, _br, _ar
+  while(eptr < ne && fptr < nf) {
+    if(ea < fa) {
+      a = ei
+      eptr += 1
+      if(eptr < ne) {
+        ei = e[eptr]
+        ea = abs(ei)
+      }
+    } else {
+      a = fi
+      fptr += 1
+      if(fptr < nf) {
+        fi = -f[fptr]
+        fa = abs(fi)
+      }
+    }
+    b = q0
+    x = a + b
+    bv = x - a
+    y = b - bv
+    if(y) {
+      g[count++] = y
+    }
+    _x = q1 + x
+    _bv = _x - q1
+    _av = _x - _bv
+    _br = x - _bv
+    _ar = q1 - _av
+    q0 = _ar + _br
+    q1 = _x
+  }
+  while(eptr < ne) {
+    a = ei
+    b = q0
+    x = a + b
+    bv = x - a
+    y = b - bv
+    if(y) {
+      g[count++] = y
+    }
+    _x = q1 + x
+    _bv = _x - q1
+    _av = _x - _bv
+    _br = x - _bv
+    _ar = q1 - _av
+    q0 = _ar + _br
+    q1 = _x
+    eptr += 1
+    if(eptr < ne) {
+      ei = e[eptr]
+    }
+  }
+  while(fptr < nf) {
+    a = fi
+    b = q0
+    x = a + b
+    bv = x - a
+    y = b - bv
+    if(y) {
+      g[count++] = y
+    } 
+    _x = q1 + x
+    _bv = _x - q1
+    _av = _x - _bv
+    _br = x - _bv
+    _ar = q1 - _av
+    q0 = _ar + _br
+    q1 = _x
+    fptr += 1
+    if(fptr < nf) {
+      fi = -f[fptr]
+    }
+  }
+  if(q0) {
+    g[count++] = q0
+  }
+  if(q1) {
+    g[count++] = q1
+  }
+  if(!count) {
+    g[count++] = 0.0  
+  }
+  g.length = count
+  return g
+}
+},{}],187:[function(require,module,exports){
+"use strict"
+
+module.exports = linearExpansionSum
+
+//Easy case: Add two scalars
+function scalarScalar(a, b) {
+  var x = a + b
+  var bv = x - a
+  var av = x - bv
+  var br = b - bv
+  var ar = a - av
+  var y = ar + br
+  if(y) {
+    return [y, x]
+  }
+  return [x]
+}
+
+function linearExpansionSum(e, f) {
+  var ne = e.length|0
+  var nf = f.length|0
+  if(ne === 1 && nf === 1) {
+    return scalarScalar(e[0], f[0])
+  }
+  var n = ne + nf
+  var g = new Array(n)
+  var count = 0
+  var eptr = 0
+  var fptr = 0
+  var abs = Math.abs
+  var ei = e[eptr]
+  var ea = abs(ei)
+  var fi = f[fptr]
+  var fa = abs(fi)
+  var a, b
+  if(ea < fa) {
+    b = ei
+    eptr += 1
+    if(eptr < ne) {
+      ei = e[eptr]
+      ea = abs(ei)
+    }
+  } else {
+    b = fi
+    fptr += 1
+    if(fptr < nf) {
+      fi = f[fptr]
+      fa = abs(fi)
+    }
+  }
+  if((eptr < ne && ea < fa) || (fptr >= nf)) {
+    a = ei
+    eptr += 1
+    if(eptr < ne) {
+      ei = e[eptr]
+      ea = abs(ei)
+    }
+  } else {
+    a = fi
+    fptr += 1
+    if(fptr < nf) {
+      fi = f[fptr]
+      fa = abs(fi)
+    }
+  }
+  var x = a + b
+  var bv = x - a
+  var y = b - bv
+  var q0 = y
+  var q1 = x
+  var _x, _bv, _av, _br, _ar
+  while(eptr < ne && fptr < nf) {
+    if(ea < fa) {
+      a = ei
+      eptr += 1
+      if(eptr < ne) {
+        ei = e[eptr]
+        ea = abs(ei)
+      }
+    } else {
+      a = fi
+      fptr += 1
+      if(fptr < nf) {
+        fi = f[fptr]
+        fa = abs(fi)
+      }
+    }
+    b = q0
+    x = a + b
+    bv = x - a
+    y = b - bv
+    if(y) {
+      g[count++] = y
+    }
+    _x = q1 + x
+    _bv = _x - q1
+    _av = _x - _bv
+    _br = x - _bv
+    _ar = q1 - _av
+    q0 = _ar + _br
+    q1 = _x
+  }
+  while(eptr < ne) {
+    a = ei
+    b = q0
+    x = a + b
+    bv = x - a
+    y = b - bv
+    if(y) {
+      g[count++] = y
+    }
+    _x = q1 + x
+    _bv = _x - q1
+    _av = _x - _bv
+    _br = x - _bv
+    _ar = q1 - _av
+    q0 = _ar + _br
+    q1 = _x
+    eptr += 1
+    if(eptr < ne) {
+      ei = e[eptr]
+    }
+  }
+  while(fptr < nf) {
+    a = fi
+    b = q0
+    x = a + b
+    bv = x - a
+    y = b - bv
+    if(y) {
+      g[count++] = y
+    } 
+    _x = q1 + x
+    _bv = _x - q1
+    _av = _x - _bv
+    _br = x - _bv
+    _ar = q1 - _av
+    q0 = _ar + _br
+    q1 = _x
+    fptr += 1
+    if(fptr < nf) {
+      fi = f[fptr]
+    }
+  }
+  if(q0) {
+    g[count++] = q0
+  }
+  if(q1) {
+    g[count++] = q1
+  }
+  if(!count) {
+    g[count++] = 0.0  
+  }
+  g.length = count
+  return g
+}
+},{}],188:[function(require,module,exports){
 'use strict';
 
 module.exports = ShelfPack;
@@ -37790,7 +39486,7 @@ Shelf.prototype.resize = function(w) {
     return true;
 };
 
-},{}],180:[function(require,module,exports){
+},{}],189:[function(require,module,exports){
 'use strict';
 
 var kdbush = require('kdbush');
@@ -38005,7 +39701,88 @@ function getY(p) {
     return p.y;
 }
 
-},{"kdbush":34}],181:[function(require,module,exports){
+},{"kdbush":36}],190:[function(require,module,exports){
+'use strict';
+
+module.exports = TinyQueue;
+
+function TinyQueue(data, compare) {
+    if (!(this instanceof TinyQueue)) return new TinyQueue(data, compare);
+
+    this.data = data || [];
+    this.length = this.data.length;
+    this.compare = compare || defaultCompare;
+
+    if (data) for (var i = Math.floor(this.length / 2); i >= 0; i--) this._down(i);
+}
+
+function defaultCompare(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+TinyQueue.prototype = {
+
+    push: function (item) {
+        this.data.push(item);
+        this.length++;
+        this._up(this.length - 1);
+    },
+
+    pop: function () {
+        var top = this.data[0];
+        this.data[0] = this.data[this.length - 1];
+        this.length--;
+        this.data.pop();
+        this._down(0);
+        return top;
+    },
+
+    peek: function () {
+        return this.data[0];
+    },
+
+    _up: function (pos) {
+        var data = this.data,
+            compare = this.compare;
+
+        while (pos > 0) {
+            var parent = Math.floor((pos - 1) / 2);
+            if (compare(data[pos], data[parent]) < 0) {
+                swap(data, parent, pos);
+                pos = parent;
+
+            } else break;
+        }
+    },
+
+    _down: function (pos) {
+        var data = this.data,
+            compare = this.compare,
+            len = this.length;
+
+        while (true) {
+            var left = 2 * pos + 1,
+                right = left + 1,
+                min = pos;
+
+            if (left < len && compare(data[left], data[min]) < 0) min = left;
+            if (right < len && compare(data[right], data[min]) < 0) min = right;
+
+            if (min === pos) return;
+
+            swap(data, min, pos);
+            pos = min;
+        }
+    }
+};
+
+function swap(data, i, j) {
+    var tmp = data[i];
+    data[i] = data[j];
+    data[j] = tmp;
+}
+
+},{}],191:[function(require,module,exports){
 var traverse = module.exports = function (obj) {
     return new Traverse(obj);
 };
@@ -38321,7 +40098,199 @@ var hasOwnProperty = Object.hasOwnProperty || function (obj, key) {
     return key in obj;
 };
 
-},{}],182:[function(require,module,exports){
+},{}],192:[function(require,module,exports){
+/**
+ * Lazily iterate over coordinates in any GeoJSON object, similar to
+ * Array.forEach.
+ *
+ * @param {Object} layer any GeoJSON object
+ * @param {Function} callback a method that takes (value)
+ * @param {boolean=} excludeWrapCoord whether or not to include
+ * the final coordinate of LinearRings that wraps the ring in its iteration.
+ * @example
+ * var point = { type: 'Point', coordinates: [0, 0] };
+ * coordEach(point, function(coords) {
+ *   // coords is equal to [0, 0]
+ * });
+ */
+function coordEach(layer, callback, excludeWrapCoord) {
+  var i, j, k, g, geometry, stopG, coords,
+    geometryMaybeCollection,
+    wrapShrink = 0,
+    isGeometryCollection,
+    isFeatureCollection = layer.type === 'FeatureCollection',
+    isFeature = layer.type === 'Feature',
+    stop = isFeatureCollection ? layer.features.length : 1;
+
+  // This logic may look a little weird. The reason why it is that way
+  // is because it's trying to be fast. GeoJSON supports multiple kinds
+  // of objects at its root: FeatureCollection, Features, Geometries.
+  // This function has the responsibility of handling all of them, and that
+  // means that some of the `for` loops you see below actually just don't apply
+  // to certain inputs. For instance, if you give this just a
+  // Point geometry, then both loops are short-circuited and all we do
+  // is gradually rename the input until it's called 'geometry'.
+  //
+  // This also aims to allocate as few resources as possible: just a
+  // few numbers and booleans, rather than any temporary arrays as would
+  // be required with the normalization approach.
+  for (i = 0; i < stop; i++) {
+
+    geometryMaybeCollection = (isFeatureCollection ? layer.features[i].geometry :
+        (isFeature ? layer.geometry : layer));
+    isGeometryCollection = geometryMaybeCollection.type === 'GeometryCollection';
+    stopG = isGeometryCollection ? geometryMaybeCollection.geometries.length : 1;
+
+    for (g = 0; g < stopG; g++) {
+
+      geometry = isGeometryCollection ?
+          geometryMaybeCollection.geometries[g] : geometryMaybeCollection;
+      coords = geometry.coordinates;
+
+      wrapShrink = (excludeWrapCoord &&
+        (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon')) ?
+        1 : 0;
+
+      if (geometry.type === 'Point') {
+        callback(coords);
+      } else if (geometry.type === 'LineString' || geometry.type === 'MultiPoint') {
+        for (j = 0; j < coords.length; j++) callback(coords[j]);
+      } else if (geometry.type === 'Polygon' || geometry.type === 'MultiLineString') {
+        for (j = 0; j < coords.length; j++)
+          for (k = 0; k < coords[j].length - wrapShrink; k++)
+            callback(coords[j][k]);
+      } else if (geometry.type === 'MultiPolygon') {
+        for (j = 0; j < coords.length; j++)
+          for (k = 0; k < coords[j].length; k++)
+            for (l = 0; l < coords[j][k].length - wrapShrink; l++)
+              callback(coords[j][k][l]);
+      } else {
+        throw new Error('Unknown Geometry Type');
+      }
+    }
+  }
+}
+module.exports.coordEach = coordEach;
+
+/**
+ * Lazily reduce coordinates in any GeoJSON object into a single value,
+ * similar to how Array.reduce works. However, in this case we lazily run
+ * the reduction, so an array of all coordinates is unnecessary.
+ *
+ * @param {Object} layer any GeoJSON object
+ * @param {Function} callback a method that takes (memo, value) and returns
+ * a new memo
+ * @param {boolean=} excludeWrapCoord whether or not to include
+ * the final coordinate of LinearRings that wraps the ring in its iteration.
+ * @param {*} memo the starting value of memo: can be any type.
+ */
+function coordReduce(layer, callback, memo, excludeWrapCoord) {
+  coordEach(layer, function(coord) {
+    memo = callback(memo, coord);
+  }, excludeWrapCoord);
+  return memo;
+}
+module.exports.coordReduce = coordReduce;
+
+/**
+ * Lazily iterate over property objects in any GeoJSON object, similar to
+ * Array.forEach.
+ *
+ * @param {Object} layer any GeoJSON object
+ * @param {Function} callback a method that takes (value)
+ * @example
+ * var point = { type: 'Feature', geometry: null, properties: { foo: 1 } };
+ * propEach(point, function(props) {
+ *   // props is equal to { foo: 1}
+ * });
+ */
+function propEach(layer, callback) {
+  var i;
+  switch (layer.type) {
+      case 'FeatureCollection':
+        features = layer.features;
+        for (i = 0; i < layer.features.length; i++) {
+            callback(layer.features[i].properties);
+        }
+        break;
+      case 'Feature':
+        callback(layer.properties);
+        break;
+  }
+}
+module.exports.propEach = propEach;
+
+/**
+ * Lazily reduce properties in any GeoJSON object into a single value,
+ * similar to how Array.reduce works. However, in this case we lazily run
+ * the reduction, so an array of all properties is unnecessary.
+ *
+ * @param {Object} layer any GeoJSON object
+ * @param {Function} callback a method that takes (memo, coord) and returns
+ * a new memo
+ * @param {*} memo the starting value of memo: can be any type.
+ */
+function propReduce(layer, callback, memo) {
+  propEach(layer, function(prop) {
+    memo = callback(memo, prop);
+  });
+  return memo;
+}
+module.exports.propReduce = propReduce;
+
+},{}],193:[function(require,module,exports){
+"use strict"
+
+module.exports = twoProduct
+
+var SPLITTER = +(Math.pow(2, 27) + 1.0)
+
+function twoProduct(a, b, result) {
+  var x = a * b
+
+  var c = SPLITTER * a
+  var abig = c - a
+  var ahi = c - abig
+  var alo = a - ahi
+
+  var d = SPLITTER * b
+  var bbig = d - b
+  var bhi = d - bbig
+  var blo = b - bhi
+
+  var err1 = x - (ahi * bhi)
+  var err2 = err1 - (alo * bhi)
+  var err3 = err2 - (ahi * blo)
+
+  var y = alo * blo - err3
+
+  if(result) {
+    result[0] = y
+    result[1] = x
+    return result
+  }
+
+  return [ y, x ]
+}
+},{}],194:[function(require,module,exports){
+"use strict"
+
+module.exports = fastTwoSum
+
+function fastTwoSum(a, b, result) {
+	var x = a + b
+	var bv = x - a
+	var av = x - bv
+	var br = b - bv
+	var ar = a - av
+	if(result) {
+		result[0] = ar + br
+		result[1] = x
+		return result
+	}
+	return [ar+br, x]
+}
+},{}],195:[function(require,module,exports){
 /*
  * Copyright (C) 2008 Apple Inc. All Rights Reserved.
  *
@@ -38428,14 +40397,14 @@ UnitBezier.prototype.solve = function(x, epsilon) {
     return this.sampleCurveY(this.solveCurveX(x, epsilon));
 };
 
-},{}],183:[function(require,module,exports){
+},{}],196:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],184:[function(require,module,exports){
+},{}],197:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -39025,12 +40994,12 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":183,"_process":177,"inherits":33}],185:[function(require,module,exports){
+},{"./support/isBuffer":196,"_process":181,"inherits":35}],198:[function(require,module,exports){
 module.exports.VectorTile = require('./lib/vectortile.js');
 module.exports.VectorTileFeature = require('./lib/vectortilefeature.js');
 module.exports.VectorTileLayer = require('./lib/vectortilelayer.js');
 
-},{"./lib/vectortile.js":186,"./lib/vectortilefeature.js":187,"./lib/vectortilelayer.js":188}],186:[function(require,module,exports){
+},{"./lib/vectortile.js":199,"./lib/vectortilefeature.js":200,"./lib/vectortilelayer.js":201}],199:[function(require,module,exports){
 'use strict';
 
 var VectorTileLayer = require('./vectortilelayer');
@@ -39049,7 +41018,7 @@ function readTile(tag, layers, pbf) {
 }
 
 
-},{"./vectortilelayer":188}],187:[function(require,module,exports){
+},{"./vectortilelayer":201}],200:[function(require,module,exports){
 'use strict';
 
 var Point = require('point-geometry');
@@ -39223,7 +41192,7 @@ VectorTileFeature.prototype.toGeoJSON = function(x, y, z) {
     return result;
 };
 
-},{"point-geometry":176}],188:[function(require,module,exports){
+},{"point-geometry":179}],201:[function(require,module,exports){
 'use strict';
 
 var VectorTileFeature = require('./vectortilefeature.js');
@@ -39286,7 +41255,7 @@ VectorTileLayer.prototype.feature = function(i) {
     return new VectorTileFeature(this._pbf, end, this.extent, this._keys, this._values);
 };
 
-},{"./vectortilefeature.js":187}],189:[function(require,module,exports){
+},{"./vectortilefeature.js":200}],202:[function(require,module,exports){
 var Pbf = require('pbf')
 var vtpb = require('./vector-tile-pb')
 var GeoJSONWrapper = require('./lib/geojson_wrapper')
@@ -39441,7 +41410,7 @@ function wrapValue (value) {
   return result
 }
 
-},{"./lib/geojson_wrapper":190,"./vector-tile-pb":191,"pbf":175}],190:[function(require,module,exports){
+},{"./lib/geojson_wrapper":203,"./vector-tile-pb":204,"pbf":178}],203:[function(require,module,exports){
 'use strict'
 
 var Point = require('point-geometry')
@@ -39508,7 +41477,7 @@ FeatureWrapper.prototype.bbox = function () {
 
 FeatureWrapper.prototype.toGeoJSON = VectorTileFeature.prototype.toGeoJSON
 
-},{"point-geometry":176,"vector-tile":185}],191:[function(require,module,exports){
+},{"point-geometry":179,"vector-tile":198}],204:[function(require,module,exports){
 'use strict';
 
 // tile ========================================
@@ -39614,7 +41583,7 @@ function writeLayer(layer, pbf) {
     if (layer.extent !== undefined) pbf.writeVarintField(5, layer.extent);
 }
 
-},{}],192:[function(require,module,exports){
+},{}],205:[function(require,module,exports){
 var bundleFn = arguments[3];
 var sources = arguments[4];
 var cache = arguments[5];
@@ -39681,12 +41650,12 @@ module.exports = function (fn) {
     ));
 };
 
-},{}],193:[function(require,module,exports){
+},{}],206:[function(require,module,exports){
 module.exports.RADIUS = 6378137;
 module.exports.FLATTENING = 1/298.257223563;
 module.exports.POLAR_RADIUS = 6356752.3142;
 
-},{}],194:[function(require,module,exports){
+},{}],207:[function(require,module,exports){
 var bel = {} // turns template tag into DOM elements
 var morphdom = require('morphdom') // efficiently diffs + morphs two DOM elements
 var defaultEvents = require('./update-events.js') // default events to be copied when dom elements update
@@ -39717,7 +41686,7 @@ module.exports.update = function (fromNode, toNode, opts) {
   }
 }
 
-},{"./update-events.js":195,"morphdom":171}],195:[function(require,module,exports){
+},{"./update-events.js":208,"morphdom":174}],208:[function(require,module,exports){
 module.exports = [
   // attribute events (can be set with attributes)
   'onclick',
@@ -39754,4 +41723,4 @@ module.exports = [
   'onfocusout'
 ]
 
-},{}]},{},[3]);
+},{}]},{},[4]);

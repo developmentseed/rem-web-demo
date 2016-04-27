@@ -12,19 +12,21 @@
   "license": "ISC",
   "dependencies": {
     "budo": "^8.2.1",
+    "concaveman": "^1.1.0",
     "fs-extra": "^0.26.7",
     "geojson-stream": "0.0.1",
     "glob": "^7.0.3",
     "hat": "0.0.3",
     "lodash.flatten": "^4.2.0",
     "mapbox-gl": "github:mapbox/mapbox-gl-js#d7dacd63937b0429df46b8279a75090727501efd",
-    "mapbox-gl-layers": "^1.1.3",
+    "mapbox-gl-layers": "^1.2.0",
     "mapbox-upload": "^4.2.2",
     "minimist": "^1.2.0",
     "numeral": "^1.5.3",
     "queue-async": "^1.2.1",
     "request": "^2.71.0",
     "traverse": "^0.6.6",
+    "turf-meta": "^1.0.2",
     "yo-yo": "^1.1.1"
   },
   "devDependencies": {

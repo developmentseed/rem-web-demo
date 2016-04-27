@@ -46,22 +46,36 @@ function buildStyle () {
       })
 
       // add hover style layer
-      var highlight = extend(referenceNetworkLayer, {
+      var highlightFill = {
         id: 'rem-network-highlight',
         source: 'highlight-features',
+        type: 'fill',
         paint: {
-          'line-width': multiplyLineWidth(referenceNetworkLayer.paint['line-width'], 1.25),
-          'line-color': '#fff'
+          'fill-color': '#888888',
+          'fill-opacity': 0.16666,
         },
-        layout: extend(referenceNetworkLayer.layout, {
+        layout: {
           visibility: 'visible'
-        })
-      })
-      delete highlight['source-layer']
-      delete highlight.filter
-      layers.push(highlight)
+        }
+      }
 
-      this.update(flatten(layers))
+      var highlightLine = {
+        id: 'rem-network-highlight-line',
+        source: 'highlight-features',
+        type: 'line',
+        paint: {
+          'line-color': '#ff8800',
+          'line-width': 2,
+          'line-opacity': 0.75
+        }
+      }
+
+      layers = flatten(layers)
+      var remIndex = layers.indexOf(layers.find((l) => /^model/.test(l.source)))
+      layers.splice(remIndex, 0, highlightFill)
+      layers.push(highlightLine)
+
+      this.update(layers)
     } else if (isString(x)) {
       this.update(x.replace(/MB_ACCOUNT/g, config.mapboxAccount)
                     .replace(/CUSTOMERS_TILESET/g, config.customersTileset)
