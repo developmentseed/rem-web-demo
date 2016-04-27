@@ -55,6 +55,14 @@ ready(function () {
     <div class='legend'></div>
   </div>`
   container.appendChild(infoPane)
+
+  container.appendChild(yo`
+    <div class='rem-disclaimer'>
+      FOR DEMONSTRATION PURPOSES ONLY.<br>
+      Data shown is not an official recommendation by Development Seed or the
+      MIT-Comillas Universal Energy Access Research Group.
+    </div>
+  `)
 })
 
 function onLoad (map) {
