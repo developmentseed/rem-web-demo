@@ -29,7 +29,11 @@
 }
 
 .rem-cluster-info {
+  height: 300px;
+  overflow: scroll;
 }
+.rem-cluster-info dl { overflow: auto; } /* clearfix */
+
 .rem-cluster-info dd,
 .rem-cluster-info dt {
   margin: 0;
@@ -42,6 +46,20 @@
 }
 .rem-cluster-info dd {
   float: right;
+}
+
+.legend dt {
+  clear: left;
+  float: left;
+  margin: 0;
+}
+.legend dd {
+  float: left;
+  margin-left: 4px;
+}
+
+.explanation {
+  clear: both;
 }
 
 /* diesel price menu */

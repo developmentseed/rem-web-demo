@@ -27,7 +27,8 @@
     "request": "^2.71.0",
     "traverse": "^0.6.6",
     "turf-meta": "^1.0.2",
-    "yo-yo": "^1.1.1"
+    "yo-yo": "^1.1.1",
+    "yo-yoify": "github:anandthakker/yo-yoify#fix-svg"
   },
   "devDependencies": {
     "brfs": "^1.4.3",

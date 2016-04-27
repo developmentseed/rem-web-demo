@@ -9,6 +9,7 @@ var renderProperties = require('./render-properties')
 var buildStyle = require('./build-style')
 var createMenu = require('./menu')
 var concave = require('./concave')
+var svg = require('./svg')
 var config = require('./config')
 
 // default is the 'rem-web-demo' API token in the devseed account
@@ -41,12 +42,28 @@ ready(function () {
 function createSidePanel (menu) {
   var infoPane = yo`
   <div id='rem-info-pane'>
+    <h1>Example Reference Electrification Model output</h1>
     <div class='menu'>
       <h2>${config.modelMenuTitle}</h2>
       ${menu}
     </div>
     ${renderProperties([])}
-    <div class='legend'></div>
+    <div class='legend'>
+      <dl>
+        <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>
+        <dd>Microgrid</dd>
+        <dt>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</dt>
+        <dd>Grid Extension</dd>
+        <dt>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</dt>
+        <dd>Customers served by modeled network</dd>
+        <dt>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</dt>
+        <dd>Already-electrified customers</dd>
+      </dl>
+    </div>
+    <aside class='explanation'>
+      <p>Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.</p>
+      <p>For this demonstration, the <a href="http://universalaccess.mit.edu/#/main">Universal Access team</a> made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).</p>
+    </aside>
   </div>`
   container.appendChild(infoPane)
 
@@ -54,7 +71,7 @@ function createSidePanel (menu) {
     <div class='rem-disclaimer'>
       FOR DEMONSTRATION PURPOSES ONLY.<br>
       Data shown is not an official recommendation by Development Seed or the
-      MIT-Comillas Universal Energy Access Research Group.
+      <a href="http://universalaccess.mit.edu/#/main">MIT-Comillas Universal Energy Access Research Group</a>.
     </div>
   `)
 }
@@ -118,7 +135,7 @@ function onLoad (map) {
   }
   map.on('mousemove', function (e) {
     var features = map.queryRenderedFeatures(e.point, {
-      radius: 7,
+      radius: 30,
       layers: getModelLayers(map, RegExp('model-' + currentModelIndex + '$'))
     })
     // Change the cursor style as a UI indicator.
