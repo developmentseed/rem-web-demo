@@ -36,16 +36,9 @@ ready(function () {
   })
   window.map = map
   map.on('style.load', function () { onLoad(map) })
+})
 
-  // model switcher
-  var menu = createMenu(config.models, function (model) {
-    currentModelIndex = config.models.indexOf(model)
-    getModelLayers(map).forEach((layer) => {
-      var visible = layer.endsWith('-' + currentModelIndex)
-      map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none')
-    })
-  }, config.models[0])
-
+function createSidePanel (menu) {
   var infoPane = yo`
   <div id='rem-info-pane'>
     <div class='menu'>
@@ -64,9 +57,10 @@ ready(function () {
       MIT-Comillas Universal Energy Access Research Group.
     </div>
   `)
-})
+}
 
 function onLoad (map) {
+  // add layer toggle
   map.addControl(new mapboxgl.Navigation({ position: 'top-right' }))
   var satLayers = map.getStyle().layers
     .map((layer) => layer.id)
@@ -105,6 +99,19 @@ function onLoad (map) {
     map.on('render', onData)
   }
 
+  // setup model switcher
+  var menu = createMenu(config.models, function (model) {
+    currentModelIndex = config.models.indexOf(model)
+    getModelLayers(map).forEach((layer) => {
+      var visible = layer.endsWith('-' + currentModelIndex)
+      map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none')
+    })
+    updateVisibleFeatures()
+  }, config.models[0])
+
+  createSidePanel(menu)
+
+  // handle hovering over rem model features
   var hoveredClusterId
   function isHoveredNetwork (feature) {
     return feature.properties.ClusterID === hoveredClusterId
@@ -136,6 +143,7 @@ function onLoad (map) {
       map.getSource('highlight-features').setData(hovered)
     }
   })
+
 }
 
 function getModelLayers (map, pattern) {
