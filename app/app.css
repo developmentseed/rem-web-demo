@@ -1,21 +1,44 @@
-.feature-properties table {
-  line-height: 1;
-  margin-bottom: 10px;
-}
-.feature-properties td:first-child {
-  font-weight: bold;
+#rem-demo {
 }
 
-.menu {
+#rem-map {
   position: absolute;
-  background-color: white;
-  border-radius: 4px;
+  top: 0;
+  bottom: 0;
+  left: 300px;
+  right: 0;
+}
+
+#rem-info-pane {
+  position: absolute;
+  left: 0;
+  width: 300px;
+}
+#rem-info-pane > * {
   padding: 4px;
 }
 
+.rem-cluster-info {
+}
+.rem-cluster-info dd,
+.rem-cluster-info dt {
+  margin: 0;
+  padding: 0;
+}
+.rem-cluster-info dt {
+  clear: left;
+  float: left;
+  font-weight: bold;
+}
+.rem-cluster-info dd {
+  float: right;
+}
+
+/* diesel price menu */
 .menu h2 {
   font-size: 1rem;
 }
+
 .menu ul {
   list-style-type: none;
   margin: 0;

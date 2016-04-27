@@ -1,4 +1,5 @@
 var traverse = require('traverse')
+var flatten = require('lodash.flatten')
 var template = require('./style.template.json')
 var config = require('./config')
 
@@ -70,16 +71,6 @@ function buildStyle () {
 }
 
 function isString (x) { return typeof x === 'string' }
-function flatten (arr) {
-  return arr.reduce(function (memo, x) {
-    if (Array.isArray(x)) {
-      memo.push.apply(memo, x)
-    } else {
-      memo.push(x)
-    }
-    return memo
-  }, [])
-}
 function extend (o1, o2) {
   return Object.assign({}, o1, o2)
 }

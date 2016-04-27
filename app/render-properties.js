@@ -1,17 +1,16 @@
 var yo = require('yo-yo')
+var flatten = require('lodash.flatten')
 
 module.exports = function renderProperties (features) {
-  return yo`<div class="feature-properties">
+  return yo`<div class="rem-cluster-info">
     ${features.map((f) => yo`
-      <table>
-        ${formatProperties(f.properties)
-          .map((entry) => yo`
-          <tr>
-            <td>${entry.label}</td>
-            <td>${entry.value}</td>
-          </tr>
-        `)}
-      </table>
+      <dl>
+        ${flatten(formatProperties(f.properties)
+          .map((entry) => [
+            yo`<dt>${entry.label}</dt>`,
+            yo`<dd>${entry.value}</dd>`
+          ]))}
+      </dl>
     `)}
   </div>
   `
