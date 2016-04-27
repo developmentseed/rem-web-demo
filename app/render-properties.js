@@ -17,8 +17,13 @@ module.exports = function renderProperties (features) {
   `
 }
 
+// display settings for each property, by electricity type
 var propertiesToDisplay = {
   ug: {
+    Customers: {
+      label: 'Customers',
+      format: '0,0'
+    },
     OffgridSolarCapacity_kW: {
       label: 'Solar Capacity (kW)',
       format: '0,0.0'
@@ -57,6 +62,10 @@ var propertiesToDisplay = {
     }
   },
   ext: {
+    Customers: {
+      label: 'Customers',
+      format: '0,0'
+    },
     GridEnergyCost_USDperkWh: {
       label: 'Energy Cost ($/kWh)',
       format: '$0,0.00'
