@@ -5607,7 +5607,7 @@
     {
       "interactive": true,
       "layout": {
-        "visibility": "none"
+        "visibility": "visible"
       },
       "metadata": {
         "mapbox:group": "1460744437037.7139"
@@ -5622,28 +5622,6 @@
       "id": "customers-electrified",
       "paint": {
         "circle-color": "hsla(56, 98%, 46%, 0.66)",
-        "circle-opacity": 0.3
-      },
-      "source-layer": "inputcustomers"
-    },
-    {
-      "interactive": true,
-      "layout": {
-        "visibility": "none"
-      },
-      "metadata": {
-        "mapbox:group": "1460744437037.7139"
-      },
-      "filter": [
-        "==",
-        "elect",
-        "no_elect"
-      ],
-      "type": "circle",
-      "source": "composite",
-      "id": "customers-non-electrified",
-      "paint": {
-        "circle-color": "hsla(56, 98%, 20%, 0.77)",
         "circle-opacity": 0.3
       },
       "source-layer": "inputcustomers"

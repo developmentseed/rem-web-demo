@@ -73,7 +73,7 @@ function onLoad (map) {
   map.addControl(new Layers({
     layers: {
       'Satellite Layer': satLayers,
-      'Customer Locations': [ 'customers-non-electrified', 'customers-electrified' ]
+      'Currently Electrified Buildings': [ 'customers-electrified' ]
     }
   }))
 
