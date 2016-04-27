@@ -21,6 +21,7 @@
     "mapbox-gl-layers": "^1.1.3",
     "mapbox-upload": "^4.2.2",
     "minimist": "^1.2.0",
+    "numeral": "^1.5.3",
     "queue-async": "^1.2.1",
     "request": "^2.71.0",
     "traverse": "^0.6.6",

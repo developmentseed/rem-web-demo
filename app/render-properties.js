@@ -1,5 +1,6 @@
 var yo = require('yo-yo')
 var flatten = require('lodash.flatten')
+var numeral = require('numeral')
 
 module.exports = function renderProperties (features) {
   return yo`<div class="rem-cluster-info">
@@ -18,19 +19,52 @@ module.exports = function renderProperties (features) {
 
 var propertiesToDisplay = {
   ug: {
-    OffgridSolarCapacity_kW: 'Solar Capacity (kW)',
-    OffgridStorageCapacity_kWh: 'Storage Capacity (kWh)',
-    OffgridGenSetCapacity_kW: 'Generation Set Capacity (kW)',
-    OffgridEnergyCost_USDperkWh: 'Energy Cost ($/kWh)',
-    OffgridFractionDemandServed: 'Fraction of Demand Served',
-    OffgridPeakDemand_kW: 'Peak Demand (kW)',
-    OffgridDemand_kWhperYr: 'Demand (kWh/year)',
-    OffgridGenFuel_LitersDiesel: 'Diesel (Liters)',
-    OffgridAnnualFinancialCost_USD: 'Annual Financial Cost ($)'
+    OffgridSolarCapacity_kW: {
+      label: 'Solar Capacity (kW)',
+      format: '0,0.0'
+    },
+    OffgridStorageCapacity_kWh: {
+      label: 'Storage Capacity (kWh)',
+      format: '0,0.0'
+    },
+    OffgridGenSetCapacity_kW: {
+      label: 'Generation Set Capacity (kW)',
+      format: '0,0.0'
+    },
+    OffgridEnergyCost_USDperkWh: {
+      label: 'Energy Cost ($/kWh)',
+      format: '$0,0.00'
+    },
+    OffgridFractionDemandServed: {
+      label: 'Fraction of Demand Served',
+      format: '0,0.0'
+    },
+    OffgridPeakDemand_kW: {
+      label: 'Peak Demand (kW)',
+      format: '0,0.0'
+    },
+    OffgridDemand_kWhperYr: {
+      label: 'Demand (kWh/year)',
+      format: '0,0.0'
+    },
+    OffgridGenFuel_LitersDiesel: {
+      label: 'Diesel (Liters)',
+      format: '0,0.0'
+    },
+    OffgridAnnualFinancialCost_USD: {
+      label: 'Annual Financial Cost ($)',
+      format: '$0,0'
+    }
   },
   ext: {
-    GridEnergyCost_USDperkWh: 'Energy Cost ($/kWh)',
-    GridReliability_percent: 'Grid Reliability ($)'
+    GridEnergyCost_USDperkWh: {
+      label: 'Energy Cost ($/kWh)',
+      format: '$0,0.00'
+    },
+    GridReliability_percent: {
+      label: 'Grid Reliability',
+      format: '0,0.00'
+    }
   }
 }
 function formatProperties (properties) {
@@ -54,10 +88,21 @@ function formatProperties (properties) {
   var labels = propertiesToDisplay[properties.network_type]
   if (labels) {
     Object.keys(labels).forEach((key) => {
-      items.push({label: labels[key], value: properties[key]})
+      items.push({
+        label: labels[key].label,
+        value: format(properties[key], labels[key].format)
+      })
     })
   }
 
   return items
+}
+
+function format (value, fmt) {
+  if (typeof fmt === 'string') {
+    return numeral(value).format(fmt)
+  } else {
+    return value
+  }
 }
 
