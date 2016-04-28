@@ -25,7 +25,24 @@ ready(function () {
   // stick a container div into the document if there isn't one already
   container = document.querySelector('#rem-demo')
   if (!container) {
-    container = yo`<div id='rem-demo'></div>`
+    container = yo`<div id='rem-demo'>
+      <h1>Reference Electrification Model Demonstration</h1>
+      <div class='legend'>
+        <dl>
+          <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>
+          <dd
+            data-tooltip='Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.'>
+            Microgrid
+          </dd>
+          <dt>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</dt>
+          <dd>Grid Extension</dd>
+          <dt>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</dt>
+          <dd>Customers served by modeled network</dd>
+          <dt>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</dt>
+          <dd data-tooltip='For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).'>Already-electrified customers</dd>
+        </dl>
+      </div>
+    </div>`
     document.body.appendChild(container)
   }
 
@@ -42,43 +59,25 @@ ready(function () {
 function createSidePanel (menu) {
   var infoPane = yo`
   <div id='rem-info-pane'>
-    <h1>Example Reference Electrification Model output</h1>
     <div class='menu'>
       <h2>${config.modelMenuTitle}</h2>
       ${menu}
     </div>
     ${renderProperties([])}
-    <div class='legend'>
-      <dl>
-        <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>
-        <dd>Microgrid</dd>
-        <dt>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</dt>
-        <dd>Grid Extension</dd>
-        <dt>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</dt>
-        <dd>Customers served by modeled network</dd>
-        <dt>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</dt>
-        <dd>Already-electrified customers</dd>
-      </dl>
-    </div>
-    <aside class='explanation'>
-      <p>Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.</p>
-      <p>For this demonstration, the <a href="http://universalaccess.mit.edu/#/main">Universal Access team</a> made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).</p>
-    </aside>
   </div>`
   container.appendChild(infoPane)
 
   container.appendChild(yo`
-    <div class='rem-disclaimer'>
-      FOR DEMONSTRATION PURPOSES ONLY.<br>
-      Data shown is not an official recommendation by Development Seed or the
-      <a href="http://universalaccess.mit.edu/#/main">MIT-Comillas Universal Energy Access Research Group</a>.
-    </div>
+    <footer>
+      <aside class='disclaimer'>
+        <p>FOR DEMONSTRATION PURPOSES ONLY.  Data shown is not an official recommendation by Development Seed or the <a href="http://universalaccess.mit.edu/#/main">MIT-Comillas Universal Energy Access Research Group</a></p>
+      </aside>
+    </footer>
   `)
 }
 
 function onLoad (map) {
   // add layer toggle
-  map.addControl(new mapboxgl.Navigation({ position: 'top-right' }))
   var satLayers = map.getStyle().layers
     .map((layer) => layer.id)
     .filter((id) => id.startsWith('satellite'))
@@ -99,6 +98,9 @@ function onLoad (map) {
       }
     }
   }))
+
+  // add zoom control
+  map.addControl(new mapboxgl.Navigation({ position: 'top-right' }))
 
   // Keep track of the visible network features as the map moves around
   // (This is hackery to workaround this issue: https://github.com/mapbox/mapbox-gl-js/issues/1715)

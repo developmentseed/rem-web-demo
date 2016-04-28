@@ -2,38 +2,60 @@
   font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
 }
 
+#rem-demo h1 {
+  position: relative;
+  z-index: 100;
+  color: #666;
+  margin-bottom: 0;
+}
+
 #rem-map {
   position: absolute;
-  top: 0;
-  bottom: 3em;
-  left: 300px;
+  top: 80px;
+  bottom: 30px;
+  left: 0;
   right: 0;
 }
 
 #rem-info-pane {
   position: absolute;
   left: 0;
+  top: 80px;
+  bottom: 3em;
   width: 300px;
-}
-#rem-info-pane > * {
-  padding: 4px;
+  z-index: 100;
+  padding-left: 4px;
+  pointer-events: none;
 }
 
-.rem-disclaimer {
+#rem-demo footer {
   position: absolute;
   bottom: 0;
-  left: 300px;
+  left: 0;
   right: 0;
-  height: 3em;
-  line-height: 1.5;
+  line-height: 1;
+  padding: 4px 0;
 }
 
+#rem-demo footer > *,
+#rem-info-pane > * {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#rem-demo footer p { margin: 0; }
+#rem-info-pane * { pointer-events: auto; }
+
+#rem-demo .menu,
 .rem-cluster-info {
-  height: 300px;
-  overflow: scroll;
+  border-radius: 4px;
+  overflow: hidden;
+  background: white;
+  margin: 8px 0;
 }
-.rem-cluster-info dl { overflow: auto; } /* clearfix */
 
+.rem-cluster-info--empty { display: none; }
+.rem-cluster-info dl { overflow: auto; } /* clearfix */
 .rem-cluster-info dd,
 .rem-cluster-info dt {
   margin: 0;
@@ -48,40 +70,95 @@
   float: right;
 }
 
-.legend dt {
-  clear: left;
-  float: left;
+/* diesel price menu */
+#rem-demo .menu { padding: 0; }
+#rem-demo .menu { padding: 0; }
+#rem-demo .menu h2 {
+  font-size: 1rem;
+  background-color: #666;
+  color: white;
+  border-top-radius: 4px;
+  border-bottom-radius: 4px;
+  margin-top: 0;
+  padding: 0 4px;
+}
+
+#rem-demo .menu ul {
+  list-style-type: none;
+  margin: 0 0 8px 0;
+  padding: 0 4px;
+}
+
+#rem-demo .menu li {
+  display: inline-block;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 1000px;
+  border: 1px solid #888;
+  color: #888;
+}
+
+#rem-demo .menu * + li { margin-left: 8px; }
+
+#rem-demo .menu li.active {
+  background: #888;
+  color: white;
+  font-weight: bold;
+}
+
+#rem-demo .legend dt {
+  display: inline-block;
+  vertical-align: middle;
   margin: 0;
 }
-.legend dd {
-  float: left;
+#rem-demo .legend * + dt {
+  margin-left: 12px;
+}
+#rem-demo .legend dd {
+  display: inline-block;
+  vertical-align: middle;
   margin-left: 4px;
 }
 
-.explanation {
-  clear: both;
-}
-
-/* diesel price menu */
-.menu h2 {
-  font-size: 1rem;
-}
-
-.menu ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
-
-.menu li {
-  display: inline-block;
+/* css tooltip */
+[data-tooltip] {
+  position: relative;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding-right: 18px;
+  z-index: 1000;
 }
 
-.menu li.active {
-  background: #eaeaea;
-  font-weight: bold;
-  text-decoration: underline;
+[data-tooltip]:after {
+  content: '?';
+  display: block;
+  position: absolute;
+  top: -4px;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  line-height: 12px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  color: #ddd;
+  text-align: center;
 }
+
+[data-tooltip]:hover:before {
+  content: attr(data-tooltip);
+  display: block;
+  position: absolute;
+  left: 100%;
+  top: 12px;
+  width: 300px;
+  height: auto;
+  margin-left: 4px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #ddd;
+  padding: 4px;
+  color: #222;
+  text-align: left;
+}
+

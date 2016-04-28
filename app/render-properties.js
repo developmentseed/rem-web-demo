@@ -3,6 +3,7 @@ var flatten = require('lodash.flatten')
 var numeral = require('numeral')
 
 module.exports = function renderProperties (features) {
+  if (!features.length) { return yo`<div class="rem-cluster-info rem-cluster-info--empty"></div>` }
   return yo`<div class="rem-cluster-info">
     ${features.map((f) => yo`
       <dl>
