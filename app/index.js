@@ -31,7 +31,6 @@ ready(function () {
 
   container.appendChild(yo`
   <header>
-    <h1>Reference Electrification Model Demonstration</h1>
     <div class='legend'>
       <dl>
         <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>

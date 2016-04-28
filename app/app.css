@@ -1,17 +1,6 @@
-#rem-demo {
-  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
-}
-
-#rem-demo h1 {
-  position: relative;
-  z-index: 100;
-  color: #666;
-  margin-bottom: 0;
-}
-
 #rem-map {
   position: absolute;
-  top: 80px;
+  top: 30px;
   bottom: 30px;
   left: 0;
   right: 0;
@@ -20,7 +9,7 @@
 #rem-info-pane {
   position: absolute;
   left: 0;
-  top: 80px;
+  top: 30px;
   bottom: 3em;
   width: 300px;
   z-index: 100;
@@ -106,6 +95,9 @@
   font-weight: bold;
 }
 
+#rem-demo .legend dl {
+  margin: 0;
+}
 #rem-demo .legend dt {
   display: inline-block;
   vertical-align: middle;
