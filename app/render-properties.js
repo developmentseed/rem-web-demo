@@ -39,11 +39,11 @@ var propertiesToDisplay = {
     },
     OffgridEnergyCost_USDperkWh: {
       label: 'Energy Cost ($/kWh)',
-      format: '$0,0.00'
+      format: '0,0.00'
     },
     OffgridFractionDemandServed: {
       label: 'Fraction of Demand Served',
-      format: '0,0.0'
+      format: '0,0.00'
     },
     OffgridPeakDemand_kW: {
       label: 'Peak Demand (kW)',
@@ -51,15 +51,15 @@ var propertiesToDisplay = {
     },
     OffgridDemand_kWhperYr: {
       label: 'Demand (kWh/year)',
-      format: '0,0.0'
+      format: '0,0.00'
     },
     OffgridGenFuel_LitersDiesel: {
       label: 'Diesel (Liters)',
-      format: '0,0.0'
+      format: '0,0'
     },
     OffgridAnnualFinancialCost_USD: {
       label: 'Annual Financial Cost ($)',
-      format: '$0,0'
+      format: '0,0'
     }
   },
   ext: {
@@ -69,7 +69,7 @@ var propertiesToDisplay = {
     },
     GridEnergyCost_USDperkWh: {
       label: 'Energy Cost ($/kWh)',
-      format: '$0,0.00'
+      format: '0,0.00'
     },
     GridReliability_percent: {
       label: 'Grid Reliability',
