@@ -25,26 +25,29 @@ ready(function () {
   // stick a container div into the document if there isn't one already
   container = document.querySelector('#rem-demo')
   if (!container) {
-    container = yo`<div id='rem-demo'>
-      <h1>Reference Electrification Model Demonstration</h1>
-      <div class='legend'>
-        <dl>
-          <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>
-          <dd
-            data-tooltip='Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.'>
-            Microgrid
-          </dd>
-          <dt>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</dt>
-          <dd>Grid Extension</dd>
-          <dt>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</dt>
-          <dd>Customers served by modeled network</dd>
-          <dt>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</dt>
-          <dd data-tooltip='For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).'>Already-electrified customers</dd>
-        </dl>
-      </div>
-    </div>`
+    container = yo`<div id='rem-demo'> </div>`
     document.body.appendChild(container)
   }
+
+  container.appendChild(yo`
+  <header>
+    <h1>Reference Electrification Model Demonstration</h1>
+    <div class='legend'>
+      <dl>
+        <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>
+        <dd
+          data-tooltip='Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.'>
+          Microgrid
+        </dd>
+        <dt>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</dt>
+        <dd>Grid Extension</dd>
+        <dt>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</dt>
+        <dd>Customers served by modeled network</dd>
+        <dt>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</dt>
+        <dd data-tooltip='For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).'>Already-electrified customers</dd>
+      </dl>
+    </div>
+  </header>`)
 
   // boot up the map
   container.appendChild(yo`<div id='rem-map'></div>`)

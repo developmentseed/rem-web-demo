@@ -139,8 +139,9 @@ function coordAll(layer) {
 }
 
 },{"concaveman":12,"turf-meta":193}],3:[function(require,module,exports){
+(function (process){
 module.exports = {
-  mapboxAccessToken: "pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJnUi1mbkVvIn0.018aLhX0Mb0tdtaT2QNe2Q" ||
+  mapboxAccessToken: process.env.MapboxAccessToken ||
   'pk.eyJ1IjoiZGV2c2VlZCIsImEiOiJjaW14d2w2MW8wM2tndXJra2locWczMGR2In0._7KBuOaYm9R1rK3K6hdJlQ',
   mapboxAccount: 'devseed',
   customersTileset: 'devseed.rem-customers',
@@ -153,7 +154,8 @@ module.exports = {
   ],
 }
 
-},{}],4:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"_process":182}],4:[function(require,module,exports){
 
 var path = require('path')
 var mapboxgl = require('mapbox-gl')
@@ -209,8 +211,43 @@ ready(function () {
               }
             }
           }
-          var bel11 = document.createElement("div")
-bel11.setAttribute("id", "rem-demo")
+          var bel0 = document.createElement("div")
+bel0.setAttribute("id", "rem-demo")
+appendChild(bel0, [" "])
+          return bel0
+        }())
+    document.body.appendChild(container)
+  }
+
+  container.appendChild((function () {
+          function appendChild (el, childs) {
+            for (var i = 0; i < childs.length; i++) {
+              var node = childs[i];
+              if (Array.isArray(node)) {
+                appendChild(el, node)
+                continue
+              }
+              if (typeof node === "number" ||
+                typeof node === "boolean" ||
+                node instanceof Date ||
+                node instanceof RegExp) {
+                node = node.toString()
+              }
+
+              if (typeof node === "string") {
+                if (el.lastChild && el.lastChild.nodeName === "#text") {
+                  el.lastChild.nodeValue += node
+                  continue
+                }
+                node = document.createTextNode(node)
+              }
+
+              if (node && node.nodeType) {
+                el.appendChild(node)
+              }
+            }
+          }
+          var bel11 = document.createElement("header")
 var bel0 = document.createElement("h1")
 appendChild(bel0, ["Reference Electrification Model Demonstration"])
 var bel10 = document.createElement("div")
@@ -220,7 +257,7 @@ var bel1 = document.createElement("dt")
 appendChild(bel1, [arguments[0]])
 var bel2 = document.createElement("dd")
 bel2.setAttribute("data-tooltip", "Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.")
-appendChild(bel2, ["\n            Microgrid\n          "])
+appendChild(bel2, ["\n          Microgrid\n        "])
 var bel3 = document.createElement("dt")
 appendChild(bel3, [arguments[1]])
 var bel4 = document.createElement("dd")
@@ -234,13 +271,11 @@ appendChild(bel7, [arguments[3]])
 var bel8 = document.createElement("dd")
 bel8.setAttribute("data-tooltip", "For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).")
 appendChild(bel8, ["Already-electrified customers"])
-appendChild(bel9, ["\n          ",bel1,"\n          ",bel2,"\n          ",bel3,"\n          ",bel4,"\n          ",bel5,"\n          ",bel6,"\n          ",bel7,"\n          ",bel8,"\n        "])
-appendChild(bel10, ["\n        ",bel9,"\n      "])
-appendChild(bel11, ["\n      ",bel0,"\n      ",bel10,"\n    "])
+appendChild(bel9, ["\n        ",bel1,"\n        ",bel2,"\n        ",bel3,"\n        ",bel4,"\n        ",bel5,"\n        ",bel6,"\n        ",bel7,"\n        ",bel8,"\n      "])
+appendChild(bel10, ["\n      ",bel9,"\n    "])
+appendChild(bel11, ["\n    ",bel0,"\n    ",bel10,"\n  "])
           return bel11
-        }(svg.line('hsl(84, 90%, 33%)', 20, 20),svg.line('hsl(201, 90%, 33%)', 20, 20),svg.circle('hsl(43, 100%, 71%)', 20, 20),svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)))
-    document.body.appendChild(container)
-  }
+        }(svg.line('hsl(84, 90%, 33%)', 20, 20),svg.line('hsl(201, 90%, 33%)', 20, 20),svg.circle('hsl(43, 100%, 71%)', 20, 20),svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20))))
 
   // boot up the map
   container.appendChild((function () {
