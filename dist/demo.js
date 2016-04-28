@@ -314,7 +314,10 @@ bel0.setAttribute("id", "rem-map")
     container: 'rem-map',
     style: buildStyle()
   })
-  window.map = map
+  if (!container.getAttribute('data-scroll-zoom')) {
+    map.scrollZoom.disable()
+  }
+  window.remDemoMap = map
   map.on('style.load', function () { onLoad(map) })
 })
 
