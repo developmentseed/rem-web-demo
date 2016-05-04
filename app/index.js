@@ -17,6 +17,7 @@ mapboxgl.accessToken = config.mapboxAccessToken
 
 var container
 var currentModelIndex = 0
+var containerBody
 
 // setup the document
 ready(function () {
@@ -25,31 +26,37 @@ ready(function () {
   // stick a container div into the document if there isn't one already
   container = document.querySelector('#rem-demo')
   if (!container) {
-    container = yo`<div id='rem-demo'> </div>`
+    container = yo`<article id='rem-demo'> </article>`
     document.body.appendChild(container)
   }
 
   container.appendChild(yo`
-  <header>
-    <div class='legend'>
-      <dl>
-        <dt>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</dt>
-        <dd
-          data-tooltip='Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.'>
-          Microgrid
-        </dd>
-        <dt>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</dt>
-        <dd>Grid Extension</dd>
-        <dt>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</dt>
-        <dd>Customers served by modeled network</dd>
-        <dt>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</dt>
-        <dd data-tooltip='For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).'>Already-electrified customers</dd>
-      </dl>
-    </div>
+  <header class='rem-demo-header'>
+    <ul class='rem-demo-legend'>
+      <li data-tooltip='Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.'>
+        <span class='graph'>${svg.line('hsl(84, 90%, 33%)', 20, 20)}</span>
+        <span class='label'>Microgrid</span>
+      </li>
+      <li>
+        <span class='graph'>${svg.line('hsl(201, 90%, 33%)', 20, 20)}</span>
+        <span class='label'>Grid Extension</span>
+      </li>
+      <li>
+        <span class='graph'>${svg.circle('hsl(43, 100%, 71%)', 20, 20)}</span>
+        <span class='label'>Customers served by modeled network</span>
+      </li>
+      <li data-tooltip='For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).'>
+        <span class='graph'>${svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20)}</span>
+        <span class='label'>Already-electrified customers</span>
+      </li>
+    </ul>
   </header>`)
 
+  containerBody = yo`<div class='rem-demo-body'></div>`
+  container.appendChild(containerBody)
+
   // boot up the map
-  container.appendChild(yo`<div id='rem-map'></div>`)
+  containerBody.appendChild(yo`<div id='rem-map'></div>`)
   var map = new mapboxgl.Map({
     container: 'rem-map',
     style: buildStyle()
@@ -70,13 +77,11 @@ function createSidePanel (menu) {
     </div>
     ${renderProperties([])}
   </div>`
-  container.appendChild(infoPane)
+  containerBody.appendChild(infoPane)
 
   container.appendChild(yo`
-    <footer>
-      <aside class='disclaimer'>
-        <p>FOR DEMONSTRATION PURPOSES ONLY.  Data shown is not an official recommendation by Development Seed or the <a href="http://universalaccess.mit.edu/#/main">MIT-Comillas Universal Energy Access Research Group</a></p>
-      </aside>
+    <footer class='rem-demo-footer'>
+      <p><strong>For demonstration purposes only</strong>. Data shown is not an official recommendation by Development Seed or the <a href="http://universalaccess.mit.edu/#/main">MIT-Comillas Universal Energy Access Research Group</a></p>
     </footer>
   `)
 }

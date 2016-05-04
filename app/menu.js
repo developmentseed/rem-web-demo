@@ -12,7 +12,7 @@ function createMenu (items, onChange, initialActive) {
   }
 
   function renderItem (item, i) {
-    return yo`<li class=${item === active ? 'active' : ''}
+    return yo`<li role='button' class=${item === active ? 'active' : ''}
                   onclick=${onClick}>${item.name}</li>`
   }
 
