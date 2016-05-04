@@ -1,28 +1,69 @@
 <!doctype html>
-<html>
+<html lang='en'>
   <head>
-    <style type="text/css">
-      *, *:before, *:after { box-sizing: border-box; }
+    <meta charset='utf-8' />
+    <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1' />
+    <meta name='description' content='Example/demo of taking the output from the REM model developed at MIT Tata center and quickly visualizing those results on an interactive web map.' />
+    <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no' />
+    <title>Reference Electrification Model Demonstration</title>
+    
+    <style>
+      html {
+        box-sizing: border-box;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: inherit;
+      }
+
       body {
-        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        background: #fff;
+        font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1;
+        font-weight: 300;
+        font-style: normal;
+        color: #333;
+        margin: 0;
+        padding: 0;
       }
-      h1 {
+
+      .app-header {
+        padding: 16px;
+        height: 56px;
+      }
+
+      .app-title {
+        font-size: 20px;
+        line-height: 24px;
+        margin: 0;
+        /* truncate */
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .app-body {
         position: relative;
-        z-index: 100;
-        color: #666;
-        margin-bottom: 0;
       }
+
       #rem-demo {
-        position: absolute;
-        top: 50px;
-        bottom: 0;
-        width: 100%;
+        height: calc(100vh - 56px); /* height specific to this demo */
       }
     </style>
   </head>
   <body>
-    <h1>Reference Electrification Model Demonstration</h1>
-    <div id='rem-demo' data-scroll-zoom='true'></div>
-    <script src="dist/demo.js"></script>
+    <section class='app'>
+      <header class='app-header'>
+        <h1 class='app-title'>Reference Electrification Model Demonstration</h1>
+      </header>
+      <div class='app-body'>
+        <div id='rem-demo' data-scroll-zoom='true'></div>
+      </div>
+    </section>
+    <script src='dist/demo.js'></script>
   </body>
 </html>
