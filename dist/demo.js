@@ -175,6 +175,7 @@ mapboxgl.accessToken = config.mapboxAccessToken
 
 var container
 var currentModelIndex = 0
+var containerBody
 
 // setup the document
 ready(function () {
@@ -211,7 +212,7 @@ ready(function () {
               }
             }
           }
-          var bel0 = document.createElement("div")
+          var bel0 = document.createElement("article")
 bel0.setAttribute("id", "rem-demo")
 appendChild(bel0, [" "])
           return bel0
@@ -247,36 +248,85 @@ appendChild(bel0, [" "])
               }
             }
           }
-          var bel10 = document.createElement("header")
-var bel9 = document.createElement("div")
-bel9.setAttribute("class", "legend")
-var bel8 = document.createElement("dl")
-var bel0 = document.createElement("dt")
+          var bel13 = document.createElement("header")
+bel13.setAttribute("class", "rem-demo-header")
+var bel12 = document.createElement("ul")
+bel12.setAttribute("class", "rem-demo-legend")
+var bel2 = document.createElement("li")
+bel2.setAttribute("data-tooltip", "Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.")
+var bel0 = document.createElement("span")
+bel0.setAttribute("class", "graph")
 appendChild(bel0, [arguments[0]])
-var bel1 = document.createElement("dd")
-bel1.setAttribute("data-tooltip", "Prescribed medium voltage lines are shown larger, and low voltage lines are smaller. Generation site and transformer locations are also shown.")
-appendChild(bel1, ["\n          Microgrid\n        "])
-var bel2 = document.createElement("dt")
-appendChild(bel2, [arguments[1]])
-var bel3 = document.createElement("dd")
-appendChild(bel3, ["Grid Extension"])
-var bel4 = document.createElement("dt")
-appendChild(bel4, [arguments[2]])
-var bel5 = document.createElement("dd")
-appendChild(bel5, ["Customers served by modeled network"])
-var bel6 = document.createElement("dt")
-appendChild(bel6, [arguments[3]])
-var bel7 = document.createElement("dd")
-bel7.setAttribute("data-tooltip", "For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).")
-appendChild(bel7, ["Already-electrified customers"])
-appendChild(bel8, ["\n        ",bel0,"\n        ",bel1,"\n        ",bel2,"\n        ",bel3,"\n        ",bel4,"\n        ",bel5,"\n        ",bel6,"\n        ",bel7,"\n      "])
-appendChild(bel9, ["\n      ",bel8,"\n    "])
-appendChild(bel10, ["\n    ",bel9,"\n  "])
-          return bel10
+var bel1 = document.createElement("span")
+bel1.setAttribute("class", "label")
+appendChild(bel1, ["Microgrid"])
+appendChild(bel2, ["\n        ",bel0,"\n        ",bel1,"\n      "])
+var bel5 = document.createElement("li")
+var bel3 = document.createElement("span")
+bel3.setAttribute("class", "graph")
+appendChild(bel3, [arguments[1]])
+var bel4 = document.createElement("span")
+bel4.setAttribute("class", "label")
+appendChild(bel4, ["Grid Extension"])
+appendChild(bel5, ["\n        ",bel3,"\n        ",bel4,"\n      "])
+var bel8 = document.createElement("li")
+var bel6 = document.createElement("span")
+bel6.setAttribute("class", "graph")
+appendChild(bel6, [arguments[2]])
+var bel7 = document.createElement("span")
+bel7.setAttribute("class", "label")
+appendChild(bel7, ["Customers served by modeled network"])
+appendChild(bel8, ["\n        ",bel6,"\n        ",bel7,"\n      "])
+var bel11 = document.createElement("li")
+bel11.setAttribute("data-tooltip", "For this demonstration, the Universal Access team made guesses as to which identified buildings were grid electrified, and which ones were not electrified at all. Low voltage distribution network geodata was unavailable, so grid estimates were made based on high voltage and medium voltage distribution data. Grid extensions plans necessarily connect to our estimations of the existing grid location (not shown).")
+var bel9 = document.createElement("span")
+bel9.setAttribute("class", "graph")
+appendChild(bel9, [arguments[3]])
+var bel10 = document.createElement("span")
+bel10.setAttribute("class", "label")
+appendChild(bel10, ["Already-electrified customers"])
+appendChild(bel11, ["\n        ",bel9,"\n        ",bel10,"\n      "])
+appendChild(bel12, ["\n      ",bel2,"\n      ",bel5,"\n      ",bel8,"\n      ",bel11,"\n    "])
+appendChild(bel13, ["\n    ",bel12,"\n  "])
+          return bel13
         }(svg.line('hsl(84, 90%, 33%)', 20, 20),svg.line('hsl(201, 90%, 33%)', 20, 20),svg.circle('hsl(43, 100%, 71%)', 20, 20),svg.circle('hsla(56, 98%, 46%, 0.22)', 20, 20))))
 
+  containerBody = (function () {
+          function appendChild (el, childs) {
+            for (var i = 0; i < childs.length; i++) {
+              var node = childs[i];
+              if (Array.isArray(node)) {
+                appendChild(el, node)
+                continue
+              }
+              if (typeof node === "number" ||
+                typeof node === "boolean" ||
+                node instanceof Date ||
+                node instanceof RegExp) {
+                node = node.toString()
+              }
+
+              if (typeof node === "string") {
+                if (el.lastChild && el.lastChild.nodeName === "#text") {
+                  el.lastChild.nodeValue += node
+                  continue
+                }
+                node = document.createTextNode(node)
+              }
+
+              if (node && node.nodeType) {
+                el.appendChild(node)
+              }
+            }
+          }
+          var bel0 = document.createElement("div")
+bel0.setAttribute("class", "rem-demo-body")
+          return bel0
+        }())
+  container.appendChild(containerBody)
+
   // boot up the map
-  container.appendChild((function () {
+  containerBody.appendChild((function () {
           function appendChild (el, childs) {
             for (var i = 0; i < childs.length; i++) {
               var node = childs[i];
@@ -358,7 +408,7 @@ appendChild(bel1, ["\n      ",bel0,"\n      ",arguments[1],"\n    "])
 appendChild(bel2, ["\n    ",bel1,"\n    ",arguments[2],"\n  "])
           return bel2
         }(config.modelMenuTitle,menu,renderProperties([])))
-  container.appendChild(infoPane)
+  containerBody.appendChild(infoPane)
 
   container.appendChild((function () {
           function appendChild (el, childs) {
@@ -389,14 +439,14 @@ appendChild(bel2, ["\n    ",bel1,"\n    ",arguments[2],"\n  "])
             }
           }
           var bel3 = document.createElement("footer")
-var bel2 = document.createElement("aside")
-bel2.setAttribute("class", "disclaimer")
-var bel1 = document.createElement("p")
-var bel0 = document.createElement("a")
-bel0.setAttribute("href", "http://universalaccess.mit.edu/#/main")
-appendChild(bel0, ["MIT-Comillas Universal Energy Access Research Group"])
-appendChild(bel1, ["FOR DEMONSTRATION PURPOSES ONLY.  Data shown is not an official recommendation by Development Seed or the ",bel0])
-appendChild(bel2, ["\n        ",bel1,"\n      "])
+bel3.setAttribute("class", "rem-demo-footer")
+var bel2 = document.createElement("p")
+var bel0 = document.createElement("strong")
+appendChild(bel0, ["For demonstration purposes only"])
+var bel1 = document.createElement("a")
+bel1.setAttribute("href", "http://universalaccess.mit.edu/#/main")
+appendChild(bel1, ["MIT-Comillas Universal Energy Access Research Group"])
+appendChild(bel2, [bel0,". Data shown is not an official recommendation by Development Seed or the ",bel1])
 appendChild(bel3, ["\n      ",bel2,"\n    "])
           return bel3
         }()))
@@ -502,7 +552,7 @@ var path = require('path')
 var css = [
   ".mapboxgl-map {\n    font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;\n    overflow: hidden;\n    position: relative;\n    -webkit-tap-highlight-color: rgba(0,0,0,0);\n}\n\n.mapboxgl-canvas-container.mapboxgl-interactive,\n.mapboxgl-ctrl-nav-compass {\n    cursor: -webkit-grab;\n    cursor: -moz-grab;\n    cursor: grab;\n}\n.mapboxgl-canvas-container.mapboxgl-interactive:active,\n.mapboxgl-ctrl-nav-compass:active {\n    cursor: -webkit-grabbing;\n    cursor: -moz-grabbing;\n    cursor: grabbing;\n}\n\n.mapboxgl-ctrl-top-left,\n.mapboxgl-ctrl-top-right,\n.mapboxgl-ctrl-bottom-left,\n.mapboxgl-ctrl-bottom-right  { position:absolute; }\n.mapboxgl-ctrl-top-left      { top:0; left:0; }\n.mapboxgl-ctrl-top-right     { top:0; right:0; }\n.mapboxgl-ctrl-bottom-left   { bottom:0; left:0; }\n.mapboxgl-ctrl-bottom-right  { right:0; bottom:0; }\n\n.mapboxgl-ctrl { clear:both; }\n.mapboxgl-ctrl-top-left .mapboxgl-ctrl { margin:10px 0 0 10px; float:left; }\n.mapboxgl-ctrl-top-right .mapboxgl-ctrl{ margin:10px 10px 0 0; float:right; }\n.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl { margin:0 0 10px 10px; float:left; }\n.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl { margin:0 10px 10px 0; float:right; }\n\n.mapboxgl-ctrl-group {\n    border-radius: 4px;\n    -moz-box-shadow: 0px 0px 2px rgba(0,0,0,0.1);\n    -webkit-box-shadow: 0px 0px 2px rgba(0,0,0,0.1);\n    box-shadow: 0px 0px 0px 2px rgba(0,0,0,0.1);\n    overflow: hidden;\n    background: #fff;\n}\n.mapboxgl-ctrl-group > button {\n    width: 30px;\n    height: 30px;\n    display: block;\n    padding: 0;\n    outline: none;\n    border: none;\n    border-bottom: 1px solid #ddd;\n    box-sizing: border-box;\n    background-color: rgba(0,0,0,0);\n    cursor: pointer;\n}\n/* https://bugzilla.mozilla.org/show_bug.cgi?id=140562 */\n.mapboxgl-ctrl > button::-moz-focus-inner {\n    border: 0;\n    padding: 0;\n}\n.mapboxgl-ctrl > button:last-child {\n    border-bottom: 0;\n}\n.mapboxgl-ctrl > button:hover {\n    background-color: rgba(0,0,0,0.05);\n}\n.mapboxgl-ctrl-icon,\n.mapboxgl-ctrl-icon > div.arrow {\n    speak: none;\n    -webkit-font-smoothing: antialiased;\n    -moz-osx-font-smoothing: grayscale;\n}\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-out {\n    padding: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%0A%20%20%3Cpath%20style%3D%27fill%3A%23333333%3B%27%20d%3D%27m%207%2C9%20c%20-0.554%2C0%20-1%2C0.446%20-1%2C1%200%2C0.554%200.446%2C1%201%2C1%20l%206%2C0%20c%200.554%2C0%201%2C-0.446%201%2C-1%200%2C-0.554%20-0.446%2C-1%20-1%2C-1%20z%27%20%2F%3E%0A%3C%2Fsvg%3E%0A\");\n}\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-in  {\n    padding: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%0A%20%20%3Cpath%20style%3D%27fill%3A%23333333%3B%27%20d%3D%27M%2010%206%20C%209.446%206%209%206.4459904%209%207%20L%209%209%20L%207%209%20C%206.446%209%206%209.446%206%2010%20C%206%2010.554%206.446%2011%207%2011%20L%209%2011%20L%209%2013%20C%209%2013.55401%209.446%2014%2010%2014%20C%2010.554%2014%2011%2013.55401%2011%2013%20L%2011%2011%20L%2013%2011%20C%2013.554%2011%2014%2010.554%2014%2010%20C%2014%209.446%2013.554%209%2013%209%20L%2011%209%20L%2011%207%20C%2011%206.4459904%2010.554%206%2010%206%20z%27%20%2F%3E%0A%3C%2Fsvg%3E%0A\");\n}\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-geolocate  {\n    padding: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20style%3D%27fill%3A%23333333%3B%27%20d%3D%27M13%2C7%20L10.5%2C11.75%20L10.25%2C10%20z%20M13.888%2C6.112%20C13.615%2C5.84%2013.382%2C6.076%2012.5%2C6.5%20C10.14%2C7.634%206%2C10%206%2C10%20L9.5%2C10.5%20L10%2C14%20C10%2C14%2012.366%2C9.86%2013.5%2C7.5%20C13.924%2C6.617%2014.16%2C6.385%2013.888%2C6.112%27%2F%3E%3C%2Fsvg%3E\");\n}\n\n.mapboxgl-ctrl-icon.mapboxgl-ctrl-compass > div.arrow {\n    width: 20px;\n    height: 20px;\n    margin: 5px;\n    background-image: url(\"data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2020%2020%27%3E%0A%09%3Cpolygon%20fill%3D%27%23333333%27%20points%3D%276%2C9%2010%2C1%2014%2C9%27%2F%3E%0A%09%3Cpolygon%20fill%3D%27%23CCCCCC%27%20points%3D%276%2C11%2010%2C19%2014%2C11%20%27%2F%3E%0A%3C%2Fsvg%3E\");\n    background-repeat: no-repeat;\n}\n\n.mapboxgl-ctrl.mapboxgl-ctrl-attrib {\n    padding: 0 5px;\n    background-color: rgba(255,255,255,0.5);\n    margin: 0;\n}\n.mapboxgl-ctrl-attrib a {\n    color: rgba(0,0,0,0.75);\n    text-decoration: none;\n}\n.mapboxgl-ctrl-attrib a:hover {\n    color: inherit;\n    text-decoration: underline;\n}\n.mapboxgl-ctrl-attrib .mapbox-improve-map {\n    font-weight: bold;\n    margin-left: 2px;\n}\n\n.mapboxgl-popup {\n    position: absolute;\n    top: 0;\n    left: 0;\n    display: -webkit-flex;\n    display: flex;\n    will-change: transform;\n    pointer-events: none;\n}\n.mapboxgl-popup-anchor-top,\n.mapboxgl-popup-anchor-top-left,\n.mapboxgl-popup-anchor-top-right {\n    -webkit-flex-direction: column;\n    flex-direction: column;\n}\n.mapboxgl-popup-anchor-bottom,\n.mapboxgl-popup-anchor-bottom-left,\n.mapboxgl-popup-anchor-bottom-right {\n    -webkit-flex-direction: column-reverse;\n    flex-direction: column-reverse;\n}\n.mapboxgl-popup-anchor-left {\n    -webkit-flex-direction: row;\n    flex-direction: row;\n}\n.mapboxgl-popup-anchor-right {\n    -webkit-flex-direction: row-reverse;\n    flex-direction: row-reverse;\n}\n.mapboxgl-popup-tip {\n    width: 0;\n    height: 0;\n    border: 10px solid transparent;\n    z-index: 1;\n}\n.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-top: none;\n    border-bottom-color: #fff;\n}\n.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip {\n    -webkit-align-self: flex-start;\n    align-self: flex-start;\n    border-top: none;\n    border-left: none;\n    border-bottom-color: #fff;\n}\n.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {\n    -webkit-align-self: flex-end;\n    align-self: flex-end;\n    border-top: none;\n    border-right: none;\n    border-bottom-color: #fff;\n}\n.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-bottom: none;\n    border-top-color: #fff;\n}\n.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip {\n    -webkit-align-self: flex-start;\n    align-self: flex-start;\n    border-bottom: none;\n    border-left: none;\n    border-top-color: #fff;\n}\n.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {\n    -webkit-align-self: flex-end;\n    align-self: flex-end;\n    border-bottom: none;\n    border-right: none;\n    border-top-color: #fff;\n}\n.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-left: none;\n    border-right-color: #fff;\n}\n.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {\n    -webkit-align-self: center;\n    align-self: center;\n    border-right: none;\n    border-left-color: #fff;\n}\n.mapboxgl-popup-close-button {\n    position: absolute;\n    right: 0;\n    top: 0;\n    border: none;\n    border-radius: 0 3px 0 0;\n    cursor: pointer;\n    background-color: rgba(0,0,0,0);\n}\n.mapboxgl-popup-close-button:hover {\n    background-color: rgba(0,0,0,0.05);\n}\n.mapboxgl-popup-content {\n    position: relative;\n    background: #fff;\n    border-radius: 3px;\n    box-shadow: 0 1px 2px rgba(0,0,0,0.10);\n    padding: 10px 10px 15px;\n    pointer-events: auto;\n}\n.mapboxgl-popup-anchor-top-left .mapboxgl-popup-content {\n    border-top-left-radius: 0;\n}\n.mapboxgl-popup-anchor-top-right .mapboxgl-popup-content {\n    border-top-right-radius: 0;\n}\n.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-content {\n    border-bottom-left-radius: 0;\n}\n.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-content {\n    border-bottom-right-radius: 0;\n}\n\n.mapboxgl-crosshair,\n.mapboxgl-crosshair .mapboxgl-interactive,\n.mapboxgl-crosshair .mapboxgl-interactive:active {\n    cursor: crosshair;\n}\n.mapboxgl-boxzoom {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 0;\n    height: 0;\n    background: #fff;\n    border: 2px dotted #202020;\n    opacity: 0.5;\n}\n@media print {\n    .mapbox-improve-map {\n        display:none;\n    }\n}\n",
   ".mapboxgl-layers {\n  max-height: 100vh;\n  overflow: scroll;\n}\n.mapboxgl-layers ul {\n  background: #fff;\n  margin: 0;\n  padding: 10px;\n  border-radius: 4px;\n  list-style-type: none;\n}\n\n.mapboxgl-layers li {\n  cursor: pointer;\n  position: relative;\n  margin: 0 5px;\n}\n.mapboxgl-layers li.active:before {\n  position: absolute;\n  right: 100%;\n  content: '\\2713 ';\n}\n.mapboxgl-layers li.partially-active:before {\n  color: #ccc;\n}\n\n",
-  "#rem-map {\n  position: absolute;\n  top: 30px;\n  bottom: 30px;\n  left: 0;\n  right: 0;\n}\n\n#rem-info-pane {\n  position: absolute;\n  left: 0;\n  top: 30px;\n  bottom: 3em;\n  width: 300px;\n  z-index: 100;\n  padding-left: 4px;\n  pointer-events: none;\n}\n\n#rem-demo footer {\n  position: absolute;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  line-height: 1;\n  padding: 4px 0;\n}\n\n#rem-demo footer > *,\n#rem-info-pane > * {\n  padding-left: 4px;\n  padding-right: 4px;\n}\n\n#rem-demo footer p { margin: 0; }\n#rem-info-pane * { pointer-events: auto; }\n\n#rem-demo .menu,\n.rem-cluster-info {\n  border-radius: 4px;\n  overflow: hidden;\n  background: white;\n  margin: 8px 0;\n}\n\n.rem-cluster-info--empty { display: none; }\n.rem-cluster-info dl { overflow: auto; } /* clearfix */\n.rem-cluster-info dd,\n.rem-cluster-info dt {\n  margin: 0;\n  padding: 0;\n}\n.rem-cluster-info dt {\n  clear: left;\n  float: left;\n  font-weight: bold;\n}\n.rem-cluster-info dd {\n  float: right;\n}\n\n/* diesel price menu */\n#rem-demo .menu { padding: 0; }\n#rem-demo .menu { padding: 0; }\n#rem-demo .menu h2 {\n  font-size: 1rem;\n  background-color: #666;\n  color: white;\n  border-top-radius: 4px;\n  border-bottom-radius: 4px;\n  margin-top: 0;\n  padding: 0 4px;\n}\n\n#rem-demo .menu ul {\n  list-style-type: none;\n  margin: 0 0 8px 0;\n  padding: 0 4px;\n}\n\n#rem-demo .menu li {\n  display: inline-block;\n  cursor: pointer;\n  padding: 0 4px;\n  border-radius: 1000px;\n  border: 1px solid #888;\n  color: #888;\n}\n\n#rem-demo .menu * + li { margin-left: 8px; }\n\n#rem-demo .menu li.active {\n  background: #888;\n  color: white;\n  font-weight: bold;\n}\n\n#rem-demo .legend dl {\n  margin: 0;\n}\n#rem-demo .legend dt {\n  display: inline-block;\n  vertical-align: middle;\n  margin: 0;\n}\n#rem-demo .legend * + dt {\n  margin-left: 12px;\n}\n#rem-demo .legend dd {\n  display: inline-block;\n  vertical-align: middle;\n  margin-left: 4px;\n}\n\n/* css tooltip */\n[data-tooltip] {\n  position: relative;\n  cursor: pointer;\n  padding-right: 18px;\n  z-index: 1000;\n}\n\n[data-tooltip]:after {\n  content: '?';\n  display: block;\n  position: absolute;\n  top: -4px;\n  right: 0;\n  width: 16px;\n  height: 16px;\n  line-height: 12px;\n  font-size: 12px;\n  border-radius: 8px;\n  border: 2px solid #ddd;\n  color: #ddd;\n  text-align: center;\n}\n\n[data-tooltip]:hover:before {\n  content: attr(data-tooltip);\n  display: block;\n  position: absolute;\n  left: 100%;\n  top: 12px;\n  width: 300px;\n  height: auto;\n  margin-left: 4px;\n  background: white;\n  border-radius: 8px;\n  overflow: hidden;\n  border: 2px solid #ddd;\n  padding: 4px;\n  color: #222;\n  text-align: left;\n}\n\n"
+  "/* Structure */\n\n#rem-demo {\n  position: relative;\n  display: flex;\n  flex-direction: column;\n  font-size: 12px;\n  line-height: 20px;\n  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);\n}\n\n#rem-demo > * {\n  display: flex;\n  flex-direction: column;\n}\n\n#rem-demo .rem-demo-header {\n  position: relative;\n  z-index: 2;\n  flex: 0 1 auto;\n  padding: 8px 16px;\n  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.08);\n}\n\n#rem-demo .rem-demo-footer {\n  position: relative;\n  z-index: 2;\n  flex: 0 1 auto;\n  padding: 16px;\n  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.08);\n}\n\n#rem-demo .rem-demo-footer > * {\n  font-size: 12px;\n  line-height: 16px;\n  padding: 0;\n  opacity: 0.64;\n}\n\n#rem-demo .rem-demo-footer > *:last-child {\n  margin: 0;\n}\n\n#rem-demo .rem-demo-body {\n  position: relative;\n  z-index: 1;\n  flex: 1 1 auto;\n}\n\n\n/* Legend */\n\n#rem-demo .rem-demo-legend {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n}\n\n#rem-demo .rem-demo-legend li {\n  display: inline-block;\n  vertical-align: middle;\n  margin: 2px 16px 2px 0;\n}\n\n#rem-demo .rem-demo-legend li *,\n#rem-demo .rem-demo-legend li:after {\n  vertical-align: top;\n  display: inline-block;\n}\n\n#rem-map {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n}\n\n\n/* Info pane */\n\n#rem-info-pane {\n  position: absolute;\n  top: 16px;\n  bottom: 16px;\n  left: 16px;\n  width: 288px;\n  z-index: 100;\n  pointer-events: none;\n}\n\n#rem-info-pane > *:not(:last-child) {\n  margin-bottom: 8px;\n}\n\n#rem-info-pane * { pointer-events: auto; }\n\n#rem-demo .menu,\n.rem-cluster-info {\n  overflow: hidden;\n  background: #fff;\n  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.08);\n  border-radius: 4px;\n  padding: 16px;\n}\n\n/* Diesel price menu */\n\n#rem-demo .menu h2 {\n  margin: 0 0 8px 0;\n  font-size: 14px;\n  font-weight: 400;\n  text-transform: uppercase;\n  line-height: 20px;\n  font-size: 12px;\n  line-height: 16px;\n}\n\n#rem-demo .menu ul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  display: inline-block;\n  vertical-align: middle;\n  width: 100%;\n}\n\n#rem-demo .menu li {\n  position: relative;;\n  float: left;\n  cursor: pointer;\n  padding: 4px 12px;\n  border-radius: 4px;\n  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);\n  color: #333;\n  font-weight: 300;\n  width: 25%;\n  text-transform: uppercase;\n  font-size: 14px;\n  line-height: 20px;\n  text-align: center;\n}\n\n#rem-demo .menu li.active {\n  background: #EEE;\n}\n\n#rem-demo .menu ul > li:first-child:not(:last-child) {\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0;\n}\n#rem-demo .menu ul > li:last-child:not(:first-child) {\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0;\n}\n#rem-demo .menu ul > li:not(:first-child):not(:last-child) {\n  border-radius: 0;\n}\n#rem-demo .menu ul li + li {\n  margin-left: -1px;\n}\n\n\n/* Cluster info */\n\n#rem-demo .rem-cluster-info {\n  max-height: 352px;\n  overflow: scroll;\n}\n\n#rem-demo .rem-cluster-info--empty {\n  display: none;\n}\n\n#rem-demo .rem-cluster-info dl {\n  overflow: hidden;\n  margin: 0;\n  padding: 0;\n}\n\n#rem-demo .rem-cluster-info dl dt,\n#rem-demo .rem-cluster-info dl dd {\n  float: left;\n  line-height: 16px;\n  margin: 0 0 4px 0;\n}\n\n#rem-demo .rem-cluster-info dl dt {\n  width: 68%;\n  clear: left;\n  padding-right: 8px;\n  font-weight: bold;\n}\n\n#rem-demo .rem-cluster-info dl dd {\n  width: 32%;\n  padding-left: 8px;\n  text-align: right;\n  word-break: break-all;\n}\n\n#rem-demo .rem-cluster-info dl dd + dd {\n  margin-left: 68%;\n}\n\n#rem-demo .rem-cluster-info dl dt:first-of-type {\n  width: 32%;\n}\n\n#rem-demo .rem-cluster-info dl dd:first-of-type {\n  width: 68%;\n}\n\n/* CSS tooltip */\n\n#rem-demo [data-tooltip] {\n  position: relative;\n  cursor: pointer;\n  padding-right: 20px;\n  z-index: 1000;\n}\n\n#rem-demo [data-tooltip]:after {\n  position: absolute;\n  right: 0;\n  top: 2px;\n  content: '?';\n  display: inline-block;\n  width: 16px;\n  height: 16px;\n  line-height: 16px;\n  font-size: 12px;\n  border-radius: 8px;\n  box-shadow: inset 0 0 0 2px black;\n  text-align: center;\n  color: black;\n  opacity: 0.32;\n  font-weight: bold;\n}\n\n#rem-demo [data-tooltip]:hover:before {\n  content: attr(data-tooltip);\n  display: block;\n  position: absolute;\n  left: 0;\n  top: 100%;\n  width: 288px;\n  height: auto;\n  margin-top: 4px;\n  border-radius: 4px;\n  overflow: hidden;\n  padding: 8px;\n  text-align: left;\n  background: rgba(0, 0, 0, 0.80);\n  border-radius: 4px;\n  color: #fff;\n  font-weight: 400;\n\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\n\n/* Mapbox */\n\n#rem-demo .mapboxgl-map {\n  font: inherit;\n}\n\n#rem-demo .mapboxgl-ctrl-top-right .mapboxgl-ctrl {\n  margin: 16px 16px 0 0;\n  float: right;\n}\n\n#rem-demo .mapboxgl-layers {\n  overflow: visible;\n}\n\n#rem-demo .mapboxgl-layers ul {\n  background: #fff;\n  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.08);\n  border-radius: 4px;\n  margin: 0;\n  padding: 12px 16px;\n}\n\n#rem-demo .mapboxgl-layers ul li {\n  position: relative;\n  margin: 0;\n  padding-right: 20px;\n}\n\n#rem-demo .mapboxgl-layers ul li.active:before {\n  font-family: sans-serif;\n  position: absolute;\n  top: 0;\n  right: 0;\n  content: '✔';\n  opacity: 0.48;\n}"
 ].join('\n')
 
 module.exports = function insertCss () {
@@ -587,6 +637,7 @@ appendChild(bel0, [arguments[0]])
             }
           }
           var bel0 = document.createElement("li")
+bel0.setAttribute("role", "button")
 bel0["onclick"] = arguments[0]
 bel0.setAttribute("class", arguments[1])
 appendChild(bel0, [arguments[2]])
