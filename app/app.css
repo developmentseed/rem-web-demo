@@ -164,7 +164,7 @@
 /* Cluster info */
 
 #rem-demo .rem-cluster-info {
-  max-height: 352px;
+  max-height: 384px;
   overflow: scroll;
 }
 
@@ -196,7 +196,6 @@
   width: 32%;
   padding-left: 8px;
   text-align: right;
-  word-break: break-all;
 }
 
 #rem-demo .rem-cluster-info dl dd + dd {
@@ -209,6 +208,7 @@
 
 #rem-demo .rem-cluster-info dl dd:first-of-type {
   width: 68%;
+  word-break: break-all;
 }
 
 /* CSS tooltip */
